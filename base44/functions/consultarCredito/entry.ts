@@ -47,6 +47,20 @@ Deno.serve(async (req) => {
     const textoRisco = data?.textoRisco ?? data?.score?.textoRisco ?? null;
     const chaveConsulta = data?.chaveConsulta ?? data?.protocolo ?? null;
 
+    // Extrai dados do cliente para gerar lead
+    const dadosCliente = data?.dados ?? {};
+    const nome = dadosCliente?.nome ?? lead_nome ?? '';
+    const telefone = dadosCliente?.telefone ?? dadosCliente?.celular ?? '';
+    const email = dadosCliente?.email ?? '';
+    const cep = dadosCliente?.cep ?? '';
+    const rua = dadosCliente?.logradouro ?? '';
+    const numero = dadosCliente?.numero ?? '';
+    const complemento = dadosCliente?.complemento ?? '';
+    const bairro = dadosCliente?.bairro ?? '';
+    const cidade = dadosCliente?.municipio ?? '';
+    const uf = dadosCliente?.uf ?? '';
+    const tipoPessoa = cpf_cnpj.replace(/\D/g, '').length === 11 ? 'F' : 'J';
+
     // Lê as regras de aprovação
     const configs = await base44.asServiceRole.entities.ConfigRegras.list();
     const config = configs[0] || {};
@@ -62,7 +76,7 @@ Deno.serve(async (req) => {
     // Persiste análise
     const analise = await base44.asServiceRole.entities.AnaliseCredito.create({
       pedido_id: pedido_id || '',
-      lead_nome: lead_nome || '',
+      lead_nome: nome || '',
       cpf_cnpj,
       score,
       classificacao_abc: classAbc,
@@ -72,6 +86,54 @@ Deno.serve(async (req) => {
       chave_consulta: chaveConsulta,
       resultado,
     });
+
+    // Cria/atualiza lead automaticamente com dados do cliente
+    let leadCriado = null;
+    if (nome) {
+      try {
+        // Verifica se já existe lead com esse CPF/CNPJ
+        const leadsExistentes = await base44.asServiceRole.entities.Lead.filter({ cnpj_cpf: cpf_cnpj });
+        
+        if (leadsExistentes.length > 0) {
+          // Atualiza lead existente
+          leadCriado = await base44.asServiceRole.entities.Lead.update(leadsExistentes[0].id, {
+            nome,
+            telefone: telefone || leadsExistentes[0].telefone,
+            email: email || leadsExistentes[0].email,
+            cep: cep || leadsExistentes[0].cep,
+            rua: rua || leadsExistentes[0].rua,
+            numero: numero || leadsExistentes[0].numero,
+            complemento: complemento || leadsExistentes[0].complemento,
+            bairro: bairro || leadsExistentes[0].bairro,
+            cidade_nome: cidade || leadsExistentes[0].cidade_nome,
+            uf: uf || leadsExistentes[0].uf,
+            tipo_pessoa: tipoPessoa,
+            etapa_funil: 'analise_credito',
+            data_entrada: leadsExistentes[0].data_entrada || new Date().toISOString(),
+          });
+        } else {
+          // Cria novo lead
+          leadCriado = await base44.asServiceRole.entities.Lead.create({
+            nome,
+            cnpj_cpf: cpf_cnpj,
+            tipo_pessoa: tipoPessoa,
+            telefone,
+            email,
+            cep,
+            rua,
+            numero,
+            complemento,
+            bairro,
+            cidade_nome: cidade,
+            uf,
+            etapa_funil: 'analise_credito',
+            data_entrada: new Date().toISOString(),
+          });
+        }
+      } catch (leadError) {
+        console.error('Erro ao criar/atualizar lead:', leadError);
+      }
+    }
 
     // Avança pedido
     if (pedido_id) {
@@ -84,7 +146,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ analise, resultado, score, probabilidade_inadimplencia: probInad });
+    return Response.json({ 
+      analise, 
+      resultado, 
+      score, 
+      probabilidade_inadimplencia: probInad,
+      lead: leadCriado,
+      cliente: { nome, telefone, email, cidade, uf }
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
