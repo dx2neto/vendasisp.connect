@@ -16,8 +16,9 @@ import {
   Zap,
   Plug,
   BarChart3,
-  Dices,
-  HeartHandshake
+  Gift,
+  Globe,
+  Wifi
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -34,8 +35,9 @@ const menuItems = [
   { label: "Comissões", icon: DollarSign, path: "/comissoes" },
   { label: "Contratos", icon: FileText, path: "/contratos" },
   { label: "Revendedor", icon: Briefcase, path: "/revendedor" },
-  { label: "Roleta de Prêmios", icon: Dices, path: "/config-roleta" },
-  { label: "Indique e Ganhe", icon: HeartHandshake, path: "/indicacoes" },
+  { label: "Roleta Prêmios", icon: Gift, path: "/roleta-config" },
+  { label: "Planômetro", icon: Wifi, path: "/planometro", external: true },
+  { label: "Site", icon: Globe, path: "/site", external: true },
   { label: "Integrações", icon: Plug, path: "/integracoes" },
   { label: "Configurações", icon: Settings, path: "/configuracoes" },
 ];
@@ -68,6 +70,20 @@ export default function Sidebar() {
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path ||
             (item.path !== "/" && location.pathname.startsWith(item.path));
+          if (item.external) {
+            return (
+              <a
+                key={item.path}
+                href={item.path}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200"
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span>{item.label}</span>}
+              </a>
+            );
+          }
           return (
             <Link
               key={item.path}
