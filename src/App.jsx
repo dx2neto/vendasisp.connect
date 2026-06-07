@@ -28,6 +28,7 @@ import VendedorDashboard from "@/pages/VendedorDashboard";
 import Analytics from "@/pages/Analytics";
 import MetasVendas from "@/pages/MetasVendas";
 import DesempenhoMensal from "@/pages/DesempenhoMensal";
+import TemplatesContrato from "@/pages/TemplatesContrato";
 import Loja from "@/pages/Loja";
 
 const AuthenticatedApp = () => {
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/metas" element={<MetasVendas />} />
           <Route path="/desempenho" element={<DesempenhoMensal />} />
+          <Route path="/templates-contrato" element={<TemplatesContrato />} />
         </Route>
       </Route>
 
