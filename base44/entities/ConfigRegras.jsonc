@@ -41,6 +41,10 @@
     "status_contrato_inicial": {
       "type": "string",
       "default": "P"
+    },
+    "zapsign_url_api": {
+      "type": "string",
+      "default": "https://api.zapsign.com.br/api/v1/"
     }
   },
   "required": []
