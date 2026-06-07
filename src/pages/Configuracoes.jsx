@@ -5,10 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Settings, Shield, Plug, Save } from "lucide-react";
+import { Settings, Shield, Plug, Save, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { useState as useLocalState } from "react";
 
 export default function Configuracoes() {
   const queryClient = useQueryClient();
+  const [ixcTestResult, setIxcTestResult] = useLocalState(null);
+  const [ixcTesting, setIxcTesting] = useLocalState(false);
+
+  const testIxc = async () => {
+    setIxcTesting(true);
+    setIxcTestResult(null);
+    const res = await base44.functions.invoke("testarIXC", {});
+    setIxcTestResult(res.data);
+    setIxcTesting(false);
+  };
 
   const { data: configs = [] } = useQuery({
     queryKey: ["config"],
@@ -104,8 +115,22 @@ export default function Configuracoes() {
 
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Plug className="w-5 h-5 text-primary" /> Integração IXC</CardTitle>
-          <CardDescription>IDs da sua instância do IXC Provedor</CardDescription>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2"><Plug className="w-5 h-5 text-primary" /> Integração IXC</CardTitle>
+            <Button type="button" size="sm" variant="outline" className="gap-2 rounded-xl text-xs" onClick={testIxc} disabled={ixcTesting}>
+              {ixcTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plug className="w-3.5 h-3.5" />}
+              Testar Conexão
+            </Button>
+          </div>
+          <CardDescription>
+            IDs da sua instância do IXC Provedor
+            {ixcTestResult && (
+              <span className={`ml-3 inline-flex items-center gap-1 text-xs font-medium ${ixcTestResult.ok ? "text-emerald-600" : "text-red-500"}`}>
+                {ixcTestResult.ok ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                {ixcTestResult.ok ? "Conectado com sucesso" : (ixcTestResult.error || ixcTestResult.msg || "Falha na conexão")}
+              </span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

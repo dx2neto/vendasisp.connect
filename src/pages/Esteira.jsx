@@ -1,9 +1,22 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
-import { User, DollarSign, Calendar } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { User, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
+
+const STATUS_COLORS = {
+  novo: "bg-blue-50 text-blue-600", analise_credito: "bg-amber-50 text-amber-600",
+  viabilidade: "bg-purple-50 text-purple-600", contrato_pendente: "bg-cyan-50 text-cyan-600",
+  assinado: "bg-teal-50 text-teal-600", ativado: "bg-emerald-50 text-emerald-600", recusado: "bg-red-50 text-red-500"
+};
+const STATUS_LABELS = {
+  novo: "Novo", analise_credito: "Crédito", viabilidade: "Viabilidade",
+  contrato_pendente: "Contrato", assinado: "Assinado", ativado: "Ativado", recusado: "Recusado"
+};
 
 const COLUMNS = [
   { id: "novo", label: "Novo Lead", color: "bg-blue-500" },
@@ -15,6 +28,7 @@ const COLUMNS = [
 
 export default function Esteira() {
   const queryClient = useQueryClient();
+  const [selectedPedido, setSelectedPedido] = useState(null);
 
   const { data: pedidos = [] } = useQuery({
     queryKey: ["pedidos"],
@@ -95,8 +109,9 @@ export default function Esteira() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
+                              onClick={() => !snapshot.isDragging && setSelectedPedido(pedido)}
                               className={cn(
-                                "rounded-xl bg-card border border-border p-3 shadow-sm transition-all",
+                                "rounded-xl bg-card border border-border p-3 shadow-sm transition-all cursor-pointer hover:border-primary/40",
                                 snapshot.isDragging && "shadow-lg shadow-primary/10 rotate-1 scale-105"
                               )}
                             >
@@ -134,6 +149,33 @@ export default function Esteira() {
           })}
         </div>
       </DragDropContext>
+
+      {/* Sheet lateral de ações */}
+      <Sheet open={!!selectedPedido} onOpenChange={() => setSelectedPedido(null)}>
+        <SheetContent className="w-[420px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{selectedPedido?.lead_nome}</SheetTitle>
+          </SheetHeader>
+          {selectedPedido && (
+            <div className="mt-6 space-y-5">
+              <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Plano</span><span>{selectedPedido.plano_nome || "—"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Valor</span><span className="font-semibold">R$ {(selectedPedido.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Vendedor</span><span>{selectedPedido.vendedor_nome || "—"}</span></div>
+                <div className="flex justify-between items-center"><span className="text-muted-foreground">Status</span>
+                  <Badge variant="outline" className={`text-xs ${STATUS_COLORS[selectedPedido.status] || ""}`}>
+                    {STATUS_LABELS[selectedPedido.status] || selectedPedido.status}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-3">Ações de Integração</p>
+                <PedidoAcoes pedido={selectedPedido} />
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
