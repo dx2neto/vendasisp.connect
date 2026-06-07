@@ -79,16 +79,15 @@ export default function Leads() {
     }
   };
 
-  const handleAdicionarNota = (novaNota) => {
+  const handleAdicionarNota = (novaNota, novaEtapa) => {
     if (!selectedLead) return;
 
     const notasAtualizadas = [...(selectedLead.historico_notas || []), novaNota];
-    updateMutation.mutate({
-      id: selectedLead.id,
-      data: { historico_notas: notasAtualizadas },
-    });
+    const update = { historico_notas: notasAtualizadas };
+    if (novaEtapa) update.etapa_funil = novaEtapa;
 
-    setSelectedLead({ ...selectedLead, historico_notas: notasAtualizadas });
+    updateMutation.mutate({ id: selectedLead.id, data: update });
+    setSelectedLead({ ...selectedLead, historico_notas: notasAtualizadas, ...(novaEtapa ? { etapa_funil: novaEtapa } : {}) });
   };
 
   return (
@@ -209,6 +208,7 @@ export default function Leads() {
                  <HistoricoNotas
                    notas={selectedLead.historico_notas}
                    onAdicionarNota={handleAdicionarNota}
+                   leadEtapaAtual={selectedLead.etapa_funil}
                  />
                </TabsContent>
                <TabsContent value="info" className="space-y-4">
