@@ -18,7 +18,8 @@ import {
   BarChart3,
   Gift,
   Globe,
-  Wifi
+  Receipt,
+  Gauge
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -36,8 +37,9 @@ const menuItems = [
   { label: "Contratos", icon: FileText, path: "/contratos" },
   { label: "Revendedor", icon: Briefcase, path: "/revendedor" },
   { label: "Roleta Prêmios", icon: Gift, path: "/roleta-config" },
-  { label: "Planômetro", icon: Wifi, path: "/planometro", external: true },
   { label: "Site", icon: Globe, path: "/site", external: true },
+  { label: "2ª Via / Boleto", icon: Receipt, path: "/boleto", external: true },
+  { label: "Planômetro", icon: Gauge, path: "/planometro", external: true },
   { label: "Integrações", icon: Plug, path: "/integracoes" },
   { label: "Configurações", icon: Settings, path: "/configuracoes" },
 ];

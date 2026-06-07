@@ -34,6 +34,7 @@ import Assinatura from "@/pages/Assinatura";
 import Roleta from "@/pages/Roleta";
 import ConfigRoleta from "@/pages/ConfigRoleta";
 import SiteInstitucional from "@/pages/SiteInstitucional";
+import BoletoFacil from "@/pages/BoletoFacil";
 import Planometro from "@/pages/Planometro";
 
 const AuthenticatedApp = () => {
@@ -62,6 +63,8 @@ const AuthenticatedApp = () => {
       <Route path="/assine" element={<Assinatura />} />
       <Route path="/roleta" element={<Roleta />} />
       <Route path="/site" element={<SiteInstitucional />} />
+      <Route path="/boleto" element={<BoletoFacil />} />
+      <Route path="/planometro" element={<Planometro />} />
       <Route path="/planometro" element={<Planometro />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>

@@ -4,355 +4,310 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Wifi, Users, Monitor, Gamepad2, Video, Music2,
-  CheckCircle2, ChevronRight, ChevronLeft, Zap, Star, Phone
+  Wifi, Users, Monitor, Gamepad2, Video, Music, ChevronRight, ChevronLeft,
+  CheckCircle, Star, Zap, Share2, RotateCcw
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-const STEPS = ["pessoas", "dispositivos", "uso", "resultado"];
-
-const USO_OPCOES = [
-  { id: "basico", label: "Básico", desc: "Redes sociais, WhatsApp e e-mail", icon: Music2, mbps: 20 },
-  { id: "streaming", label: "Streaming", desc: "Netflix, YouTube e videochamadas", icon: Video, mbps: 50 },
-  { id: "games", label: "Games", desc: "Jogos online e downloads pesados", icon: Gamepad2, mbps: 100 },
-  { id: "homeoffice", label: "Home Office", desc: "Trabalho remoto, reuniões e cloud", icon: Monitor, mbps: 80 },
+const STEPS = [
+  {
+    id: "pessoas",
+    titulo: "Quantas pessoas usam a internet?",
+    subtitulo: "Conte todos que moram na casa",
+    tipo: "opcao",
+    opcoes: [
+      { label: "1 pessoa", value: 1, emoji: "🧑" },
+      { label: "2 pessoas", value: 2, emoji: "👫" },
+      { label: "3-4 pessoas", value: 3.5, emoji: "👨‍👩‍👧" },
+      { label: "5 ou mais", value: 6, emoji: "👨‍👩‍👧‍👦" },
+    ],
+  },
+  {
+    id: "dispositivos",
+    titulo: "Quantos dispositivos ao mesmo tempo?",
+    subtitulo: "Celulares, TVs, notebooks, tablets...",
+    tipo: "opcao",
+    opcoes: [
+      { label: "1-2 dispositivos", value: 2, emoji: "📱" },
+      { label: "3-4 dispositivos", value: 4, emoji: "📱💻" },
+      { label: "5-7 dispositivos", value: 6, emoji: "📱💻📺" },
+      { label: "8 ou mais", value: 9, emoji: "🏠📡" },
+    ],
+  },
+  {
+    id: "uso",
+    titulo: "Como você usa a internet?",
+    subtitulo: "Selecione todas as atividades",
+    tipo: "multiplo",
+    opcoes: [
+      { label: "Redes sociais", value: "social", peso: 1, emoji: "📲" },
+      { label: "Streaming HD (Netflix, YouTube)", value: "streaming", peso: 3, emoji: "🎬" },
+      { label: "Streaming 4K", value: "streaming4k", peso: 5, emoji: "📺" },
+      { label: "Home office / Videoconferência", value: "homeoffice", peso: 4, emoji: "💼" },
+      { label: "Games online", value: "games", peso: 4, emoji: "🎮" },
+      { label: "Download de arquivos grandes", value: "downloads", peso: 3, emoji: "⬇️" },
+      { label: "Câmeras de segurança", value: "cameras", peso: 2, emoji: "📷" },
+    ],
+  },
+  {
+    id: "prioridade",
+    titulo: "O que é mais importante pra você?",
+    subtitulo: "Escolha um",
+    tipo: "opcao",
+    opcoes: [
+      { label: "Menor preço", value: "preco", emoji: "💰" },
+      { label: "Melhor custo-benefício", value: "custo_beneficio", emoji: "⚖️" },
+      { label: "Máxima velocidade", value: "velocidade", emoji: "🚀" },
+    ],
+  },
 ];
 
-function calcularVelocidade(pessoas, dispositivos, usos) {
-  const basePorPessoa = pessoas * 10;
-  const basePorDispositivo = dispositivos * 5;
-  const maxUso = usos.reduce((acc, u) => {
-    const op = USO_OPCOES.find(o => o.id === u);
-    return Math.max(acc, op ? op.mbps : 0);
+function calcularVelocidadeIdeal(respostas) {
+  const { pessoas = 1, dispositivos = 2, uso = [], prioridade = "custo_beneficio" } = respostas;
+  const basePessoas = pessoas * 5;
+  const baseDisp = dispositivos * 3;
+  const pesoUso = uso.reduce((acc, u) => {
+    const op = STEPS[2].opcoes.find(o => o.value === u);
+    return acc + (op?.peso || 0);
   }, 0);
-  const extra = usos.length > 1 ? (usos.length - 1) * 20 : 0;
-  return basePorPessoa + basePorDispositivo + maxUso + extra;
+  let mbps = basePessoas + baseDisp + pesoUso * 3;
+  if (prioridade === "preco") mbps = Math.max(mbps * 0.7, 20);
+  if (prioridade === "velocidade") mbps = mbps * 1.5;
+  return Math.ceil(mbps / 10) * 10; // arredonda p/ dezena
 }
 
-function StepIndicator({ current }) {
-  return (
-    <div className="flex items-center justify-center gap-2 mb-8">
-      {STEPS.map((s, i) => (
-        <div key={s} className="flex items-center gap-2">
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all",
-            i < STEPS.indexOf(STEPS[current]) ? "bg-primary text-white" :
-            i === STEPS.indexOf(STEPS[current]) ? "bg-primary text-white ring-4 ring-primary/20" :
-            "bg-muted text-muted-foreground"
-          )}>
-            {i < STEPS.indexOf(STEPS[current]) ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
-          </div>
-          {i < STEPS.length - 1 && (
-            <div className={cn(
-              "w-8 h-0.5 rounded",
-              i < STEPS.indexOf(STEPS[current]) ? "bg-primary" : "bg-muted"
-            )} />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
+function recomendar(planos, mbpsIdeal, prioridade) {
+  const ativos = planos.filter(p => p.ativo !== false);
+  if (!ativos.length) return [];
+  const sorted = [...ativos].sort((a, b) => a.velocidade_mbps - b.velocidade_mbps);
+  // plano ideal: primeiro que >= mbpsIdeal
+  const ideal = sorted.find(p => p.velocidade_mbps >= mbpsIdeal) || sorted[sorted.length - 1];
+  const idxIdeal = sorted.indexOf(ideal);
+  // econômico: um abaixo do ideal
+  const economico = idxIdeal > 0 ? sorted[idxIdeal - 1] : null;
+  // premium: um acima do ideal
+  const premium = idxIdeal < sorted.length - 1 ? sorted[idxIdeal + 1] : null;
 
-function CounterInput({ value, onChange, min = 1, max = 20 }) {
-  return (
-    <div className="flex items-center gap-4">
-      <button
-        type="button"
-        onClick={() => onChange(Math.max(min, value - 1))}
-        className="w-10 h-10 rounded-full border-2 border-border flex items-center justify-center text-lg font-bold hover:border-primary hover:text-primary transition-colors disabled:opacity-30"
-        disabled={value <= min}
-      >−</button>
-      <span className="text-4xl font-bold w-12 text-center">{value}</span>
-      <button
-        type="button"
-        onClick={() => onChange(Math.min(max, value + 1))}
-        className="w-10 h-10 rounded-full border-2 border-border flex items-center justify-center text-lg font-bold hover:border-primary hover:text-primary transition-colors disabled:opacity-30"
-        disabled={value >= max}
-      >+</button>
-    </div>
-  );
+  const resultado = [];
+  if (economico && prioridade !== "velocidade") resultado.push({ ...economico, tag: "Econômico", destaque: false });
+  resultado.push({ ...ideal, tag: prioridade === "velocidade" ? "Mais Rápido" : "Recomendado", destaque: true });
+  if (premium) resultado.push({ ...premium, tag: "Premium", destaque: false });
+  return resultado;
 }
 
 export default function Planometro() {
   const [step, setStep] = useState(0);
-  const [pessoas, setPessoas] = useState(2);
-  const [dispositivos, setDispositivos] = useState(3);
-  const [usos, setUsos] = useState([]);
-  const [showContact, setShowContact] = useState(false);
-  const [contact, setContact] = useState({ nome: "", telefone: "" });
-  const [enviado, setEnviado] = useState(false);
+  const [respostas, setRespostas] = useState({});
+  const [concluido, setConcluido] = useState(false);
 
   const { data: planos = [] } = useQuery({
-    queryKey: ["planos-publicos"],
-    queryFn: () => base44.entities.Plano.filter({ ativo: true }),
+    queryKey: ["planos"],
+    queryFn: () => base44.entities.Plano.list(),
   });
 
-  const { data: siteConfig } = useQuery({
-    queryKey: ["site-config"],
-    queryFn: async () => {
-      const list = await base44.entities.SiteConfig.list();
-      return list[0] || null;
-    },
-  });
+  const stepAtual = STEPS[step];
 
-  const velocidadeNecessaria = calcularVelocidade(pessoas, dispositivos, usos);
-
-  const planosOrdenados = [...planos].sort((a, b) => a.velocidade_mbps - b.velocidade_mbps);
-
-  const planoRecomendado = planosOrdenados.find(p => p.velocidade_mbps >= velocidadeNecessaria)
-    || planosOrdenados[planosOrdenados.length - 1];
-
-  const toggleUso = (id) => {
-    setUsos(prev => prev.includes(id) ? prev.filter(u => u !== id) : [...prev, id]);
+  const handleOpcao = (value) => {
+    const novas = { ...respostas, [stepAtual.id]: value };
+    setRespostas(novas);
+    if (step < STEPS.length - 1) {
+      setTimeout(() => setStep(s => s + 1), 280);
+    } else {
+      setConcluido(true);
+    }
   };
 
-  const canNext = () => {
-    if (step === 2) return usos.length > 0;
-    return true;
+  const toggleMultiplo = (value) => {
+    const atual = respostas[stepAtual.id] || [];
+    const novo = atual.includes(value) ? atual.filter(v => v !== value) : [...atual, value];
+    setRespostas({ ...respostas, [stepAtual.id]: novo });
   };
 
-  const handleContato = async (e) => {
-    e.preventDefault();
-    await base44.entities.Lead.create({
-      nome: contact.nome,
-      telefone: contact.telefone,
-      canal_origem: "site",
-      etapa_funil: "novo",
-      plano_interesse: planoRecomendado?.nome || "",
-      observacao: `Planômetro: ${pessoas} pessoa(s), ${dispositivos} dispositivo(s), usos: ${usos.join(", ")}. Velocidade sugerida: ${velocidadeNecessaria} Mbps.`,
-    });
-    setEnviado(true);
+  const avancar = () => {
+    if (step < STEPS.length - 1) setStep(s => s + 1);
+    else setConcluido(true);
   };
 
-  const whatsapp = siteConfig?.whatsapp;
+  const reiniciar = () => {
+    setStep(0);
+    setRespostas({});
+    setConcluido(false);
+  };
+
+  const mbpsIdeal = calcularVelocidadeIdeal(respostas);
+  const recomendacoes = recomendar(planos, mbpsIdeal, respostas.prioridade);
+
+  const compartilhar = () => {
+    const rec = recomendacoes.find(r => r.destaque);
+    if (!rec) return;
+    const texto = `🚀 Fiz o Planômetro e o plano ideal pra minha casa é: ${rec.nome} (${rec.velocidade_mbps} Mbps) por R$ ${Number(rec.preco_mensal).toFixed(2)}/mês! Faça o seu:`;
+    if (navigator.share) {
+      navigator.share({ title: "Planômetro", text: texto, url: window.location.href });
+    } else {
+      navigator.clipboard.writeText(texto + " " + window.location.href);
+    }
+  };
+
+  if (concluido) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-sky-950 via-sky-900 to-slate-900 flex flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-2xl">
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-primary mx-auto mb-4 flex items-center justify-center shadow-lg shadow-primary/40">
+              <Zap className="w-7 h-7 text-white" />
+            </div>
+            <h2 className="text-white text-2xl font-bold">Resultado do Planômetro</h2>
+            <p className="text-sky-300 mt-1">
+              Para o seu perfil, a velocidade ideal é <span className="text-white font-bold">{mbpsIdeal} Mbps</span>
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {recomendacoes.map((plano) => (
+              <div
+                key={plano.id}
+                className={`rounded-2xl p-6 border transition-all ${
+                  plano.destaque
+                    ? "bg-primary border-primary/60 shadow-xl shadow-primary/30 scale-105"
+                    : "bg-white/10 border-white/20"
+                }`}
+              >
+                {plano.destaque && (
+                  <div className="flex items-center gap-1 mb-3">
+                    <Star className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+                    <span className="text-yellow-300 text-xs font-bold uppercase tracking-wide">Recomendado</span>
+                  </div>
+                )}
+                {!plano.destaque && (
+                  <p className="text-sky-300 text-xs font-semibold uppercase tracking-wide mb-3">{plano.tag}</p>
+                )}
+                <h3 className="text-white font-bold text-lg">{plano.nome}</h3>
+                <p className="text-4xl font-bold text-white mt-1">
+                  {plano.velocidade_mbps}
+                  <span className="text-base font-normal text-sky-200 ml-1">Mbps</span>
+                </p>
+                <p className={`text-2xl font-bold mt-3 ${plano.destaque ? "text-white" : "text-sky-200"}`}>
+                  R$ {Number(plano.preco_mensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  <span className="text-sm font-normal text-sky-300">/mês</span>
+                </p>
+                {plano.descricao && <p className="text-sky-200 text-xs mt-2">{plano.descricao}</p>}
+                <a href="/assine" className="block mt-4">
+                  <Button className={`w-full rounded-xl text-sm font-semibold ${plano.destaque ? "bg-white text-primary hover:bg-sky-50" : "bg-white/20 hover:bg-white/30 text-white"}`}>
+                    Assinar agora
+                  </Button>
+                </a>
+              </div>
+            ))}
+          </div>
+
+          {recomendacoes.length === 0 && (
+            <div className="text-center text-sky-200 bg-white/10 rounded-2xl p-8 border border-white/20">
+              <Wifi className="w-10 h-10 mx-auto mb-3 opacity-50" />
+              <p>Nenhum plano cadastrado ainda. Configure seus planos no painel.</p>
+            </div>
+          )}
+
+          <div className="flex justify-center gap-3 mt-8">
+            <Button onClick={reiniciar} variant="ghost" className="text-sky-300 hover:text-white hover:bg-white/10 rounded-xl">
+              <RotateCcw className="w-4 h-4" /> Refazer
+            </Button>
+            <Button onClick={compartilhar} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl">
+              <Share2 className="w-4 h-4" /> Compartilhar
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-sky-950 to-slate-900 flex flex-col items-center justify-center p-4">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-4">
-          <Zap className="w-3.5 h-3.5" />
-          Planômetro
-        </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-white">Qual plano é ideal pra você?</h1>
-        <p className="text-slate-400 mt-2">Responda 3 perguntas e descubra em segundos</p>
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-sky-950 via-sky-900 to-slate-900 flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
-        <StepIndicator current={step} />
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-xl bg-primary mx-auto mb-3 flex items-center justify-center shadow-lg shadow-primary/40">
+            <Wifi className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-white text-2xl font-bold">Planômetro</h1>
+          <p className="text-sky-300 text-sm mt-1">Descubra o plano ideal para o seu perfil</p>
+        </div>
 
-        <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-3xl p-8">
+        {/* Progress */}
+        <div className="flex gap-1.5 mb-8">
+          {STEPS.map((_, i) => (
+            <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "bg-primary" : "bg-white/20"}`} />
+          ))}
+        </div>
 
-          {/* Step 0: Pessoas */}
-          {step === 0 && (
-            <div className="text-center space-y-8">
-              <div>
-                <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-xl font-bold text-white">Quantas pessoas usam a internet?</h2>
-                <p className="text-slate-400 text-sm mt-1">Moradores ou usuários simultâneos</p>
-              </div>
-              <CounterInput value={pessoas} onChange={setPessoas} min={1} max={15} />
-              <p className="text-slate-400 text-sm">
-                {pessoas === 1 ? "Uso individual" : pessoas <= 3 ? "Família pequena" : pessoas <= 6 ? "Família média" : "Grande família / escritório"}
-              </p>
+        {/* Card */}
+        <div className="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl">
+          <p className="text-sky-300 text-xs uppercase tracking-wider font-semibold mb-1">Passo {step + 1} de {STEPS.length}</p>
+          <h2 className="text-white text-xl font-bold mb-1">{stepAtual.titulo}</h2>
+          <p className="text-sky-300 text-sm mb-6">{stepAtual.subtitulo}</p>
+
+          {stepAtual.tipo === "opcao" && (
+            <div className="grid grid-cols-2 gap-3">
+              {stepAtual.opcoes.map((op) => {
+                const sel = respostas[stepAtual.id] === op.value;
+                return (
+                  <button
+                    key={op.value}
+                    onClick={() => handleOpcao(op.value)}
+                    className={`p-4 rounded-2xl border text-left transition-all duration-200 hover:scale-105 active:scale-95 ${
+                      sel
+                        ? "bg-primary border-primary text-white shadow-lg shadow-primary/30"
+                        : "bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    }`}
+                  >
+                    <span className="text-2xl block mb-1">{op.emoji}</span>
+                    <span className="text-sm font-medium">{op.label}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {/* Step 1: Dispositivos */}
-          {step === 1 && (
-            <div className="text-center space-y-8">
-              <div>
-                <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                  <Monitor className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-xl font-bold text-white">Quantos dispositivos conectados?</h2>
-                <p className="text-slate-400 text-sm mt-1">Celulares, TVs, notebooks, tablets…</p>
-              </div>
-              <CounterInput value={dispositivos} onChange={setDispositivos} min={1} max={20} />
-              <p className="text-slate-400 text-sm">
-                {dispositivos <= 2 ? "Poucos aparelhos" : dispositivos <= 5 ? "Quantidade moderada" : dispositivos <= 10 ? "Muitos dispositivos" : "Alta demanda de rede"}
-              </p>
-            </div>
-          )}
-
-          {/* Step 2: Uso */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-white">Como você usa a internet?</h2>
-                <p className="text-slate-400 text-sm mt-1">Selecione tudo que se aplica</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                {USO_OPCOES.map(op => {
-                  const selected = usos.includes(op.id);
-                  return (
-                    <button
-                      key={op.id}
-                      type="button"
-                      onClick={() => toggleUso(op.id)}
-                      className={cn(
-                        "flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all",
-                        selected
-                          ? "border-primary bg-primary/10 text-white"
-                          : "border-white/10 text-slate-300 hover:border-primary/40 hover:bg-white/5"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
-                        selected ? "bg-primary" : "bg-white/10"
-                      )}>
-                        <op.icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">{op.label}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{op.desc}</p>
-                      </div>
-                      {selected && <CheckCircle2 className="w-4 h-4 text-primary ml-auto flex-shrink-0 mt-0.5" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Resultado */}
-          {step === 3 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-semibold mb-3">
-                  <Star className="w-3 h-3" /> Recomendação personalizada
-                </div>
-                <h2 className="text-xl font-bold text-white">Você precisa de pelo menos</h2>
-                <p className="text-5xl font-black text-primary mt-2">{velocidadeNecessaria} Mbps</p>
-              </div>
-
-              {planoRecomendado ? (
-                <div className="rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 p-6">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Wifi className="w-5 h-5 text-primary" />
-                    <Badge className="bg-primary text-white text-xs">Plano Ideal</Badge>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mt-2">{planoRecomendado.nome}</h3>
-                  <p className="text-4xl font-black text-primary mt-1">
-                    {planoRecomendado.velocidade_mbps} <span className="text-lg font-normal text-slate-400">Mbps</span>
-                  </p>
-                  <p className="text-2xl font-bold text-white mt-3">
-                    R$ {Number(planoRecomendado.preco_mensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    <span className="text-sm font-normal text-slate-400">/mês</span>
-                  </p>
-                  {planoRecomendado.descricao && (
-                    <p className="text-sm text-slate-400 mt-2">{planoRecomendado.descricao}</p>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-white/10 p-6 text-center text-slate-400">
-                  <p>Nenhum plano cadastrado ainda. Fale conosco!</p>
-                </div>
-              )}
-
-              {/* Outros planos */}
-              {planosOrdenados.length > 1 && (
-                <div>
-                  <p className="text-xs text-slate-500 uppercase font-semibold mb-2 tracking-wider">Outros planos disponíveis</p>
-                  <div className="space-y-2">
-                    {planosOrdenados.filter(p => p.id !== planoRecomendado?.id).map(p => (
-                      <div key={p.id} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3 border border-white/5">
-                        <div className="flex items-center gap-2">
-                          <Wifi className="w-4 h-4 text-slate-400" />
-                          <span className="text-slate-300 text-sm font-medium">{p.nome} — {p.velocidade_mbps} Mbps</span>
-                        </div>
-                        <span className="text-slate-400 text-sm">R$ {Number(p.preco_mensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* CTA */}
-              {!enviado ? (
-                !showContact ? (
-                  <div className="flex flex-col gap-3 pt-2">
-                    <Button onClick={() => setShowContact(true)} className="w-full rounded-xl h-12 text-base font-bold gap-2">
-                      <Phone className="w-4 h-4" /> Quero contratar agora
-                    </Button>
-                    {whatsapp && (
-                      <a
-                        href={`https://wa.me/55${whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Fiz o Planômetro e o plano ideal pra mim é o *${planoRecomendado?.nome}* (${velocidadeNecessaria} Mbps). Quero saber mais!`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full h-12 rounded-xl border-2 border-white/10 text-white font-semibold text-sm hover:bg-white/5 transition-colors"
-                      >
-                        💬 Chamar no WhatsApp
-                      </a>
-                    )}
-                  </div>
-                ) : (
-                  <form onSubmit={handleContato} className="space-y-3 pt-2">
-                    <p className="text-sm text-slate-300 font-medium">Deixe seu contato e te ligamos:</p>
-                    <input
-                      required
-                      placeholder="Seu nome completo"
-                      value={contact.nome}
-                      onChange={e => setContact(p => ({ ...p, nome: e.target.value }))}
-                      className="w-full rounded-xl bg-white/10 border border-white/10 text-white placeholder-slate-500 px-4 py-3 text-sm focus:outline-none focus:border-primary"
-                    />
-                    <input
-                      required
-                      placeholder="Telefone com DDD"
-                      value={contact.telefone}
-                      onChange={e => setContact(p => ({ ...p, telefone: e.target.value }))}
-                      className="w-full rounded-xl bg-white/10 border border-white/10 text-white placeholder-slate-500 px-4 py-3 text-sm focus:outline-none focus:border-primary"
-                    />
-                    <Button type="submit" className="w-full rounded-xl h-11 font-bold">
-                      Enviar e aguardar contato
-                    </Button>
-                  </form>
-                )
-              ) : (
-                <div className="text-center py-4">
-                  <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                  <p className="text-white font-bold text-lg">Recebemos seu contato!</p>
-                  <p className="text-slate-400 text-sm mt-1">Nossa equipe vai te ligar em breve para ativar o plano.</p>
-                </div>
-              )}
+          {stepAtual.tipo === "multiplo" && (
+            <div className="space-y-2">
+              {stepAtual.opcoes.map((op) => {
+                const sel = (respostas[stepAtual.id] || []).includes(op.value);
+                return (
+                  <button
+                    key={op.value}
+                    onClick={() => toggleMultiplo(op.value)}
+                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${
+                      sel
+                        ? "bg-primary/80 border-primary text-white"
+                        : "bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    }`}
+                  >
+                    <span className="text-xl">{op.emoji}</span>
+                    <span className="text-sm font-medium flex-1">{op.label}</span>
+                    {sel && <CheckCircle className="w-4 h-4 text-white" />}
+                  </button>
+                );
+              })}
+              <Button
+                onClick={avancar}
+                className="w-full mt-4 rounded-xl h-11 bg-primary hover:bg-primary/90"
+                disabled={!(respostas[stepAtual.id]?.length > 0)}
+              >
+                Continuar <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
           )}
         </div>
 
-        {/* Navigation */}
-        {step < 3 && (
-          <div className="flex justify-between mt-6">
-            <Button
-              variant="ghost"
-              onClick={() => setStep(s => s - 1)}
-              disabled={step === 0}
-              className="text-slate-400 hover:text-white gap-2 rounded-xl"
-            >
-              <ChevronLeft className="w-4 h-4" /> Voltar
-            </Button>
-            <Button
-              onClick={() => setStep(s => s + 1)}
-              disabled={!canNext()}
-              className="gap-2 rounded-xl px-8"
-            >
-              {step === 2 ? "Ver recomendação" : "Próximo"} <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={() => { setStep(0); setUsos([]); setShowContact(false); setEnviado(false); }}
-              className="text-slate-500 hover:text-slate-300 text-sm underline transition-colors"
-            >
-              Refazer o teste
-            </button>
-          </div>
-        )}
+        {/* Nav */}
+        <div className="flex justify-between mt-6">
+          <button
+            onClick={() => setStep(s => Math.max(0, s - 1))}
+            className="text-sky-300 hover:text-white text-sm flex items-center gap-1 transition-colors"
+            disabled={step === 0}
+          >
+            <ChevronLeft className="w-4 h-4" /> Voltar
+          </button>
+          <span className="text-sky-400 text-xs">{step + 1}/{STEPS.length}</span>
+        </div>
       </div>
     </div>
   );
