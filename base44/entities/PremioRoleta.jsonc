@@ -1,0 +1,51 @@
+{
+  "name": "PremioRoleta",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome do pr\u00eamio exibido na roleta"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "cupom",
+        "desconto",
+        "brinde",
+        "frete_gratis",
+        "sem_premio"
+      ],
+      "default": "desconto"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "valor": {
+      "type": "string",
+      "description": "Ex: 10%, R$50, Camiseta"
+    },
+    "codigo_cupom": {
+      "type": "string"
+    },
+    "cor": {
+      "type": "string",
+      "default": "#0ea5e9"
+    },
+    "probabilidade": {
+      "type": "number",
+      "default": 10,
+      "description": "Peso relativo (0-100)"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    },
+    "emoji": {
+      "type": "string",
+      "default": "\ud83c\udf81"
+    }
+  },
+  "required": [
+    "nome"
+  ]
+}

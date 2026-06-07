@@ -5,7 +5,6 @@ import {
   ShoppingCart,
   Kanban,
   CreditCard,
-  MapPin,
   FileText,
   Settings,
   Briefcase,
@@ -16,7 +15,8 @@ import {
   ChevronRight,
   Zap,
   Plug,
-  BarChart3
+  BarChart3,
+  Dices
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -33,6 +33,7 @@ const menuItems = [
   { label: "Comissões", icon: DollarSign, path: "/comissoes" },
   { label: "Contratos", icon: FileText, path: "/contratos" },
   { label: "Revendedor", icon: Briefcase, path: "/revendedor" },
+  { label: "Roleta de Prêmios", icon: Dices, path: "/config-roleta" },
   { label: "Integrações", icon: Plug, path: "/integracoes" },
   { label: "Configurações", icon: Settings, path: "/configuracoes" },
 ];
