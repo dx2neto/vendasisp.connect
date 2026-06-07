@@ -30,6 +30,7 @@ import MetasVendas from "@/pages/MetasVendas";
 import DesempenhoMensal from "@/pages/DesempenhoMensal";
 import TemplatesContrato from "@/pages/TemplatesContrato.jsx";
 import Loja from "@/pages/Loja";
+import Assinatura from "@/pages/Assinatura";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/loja" element={<Loja />} />
+      <Route path="/assine" element={<Assinatura />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
