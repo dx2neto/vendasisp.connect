@@ -1,0 +1,33 @@
+{
+  "name": "Plano",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string"
+    },
+    "velocidade_mbps": {
+      "type": "number"
+    },
+    "preco_mensal": {
+      "type": "number"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "id_modelo_ixc": {
+      "type": "string"
+    },
+    "id_produto_ixc": {
+      "type": "string"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "nome",
+    "velocidade_mbps",
+    "preco_mensal"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "name": "AnaliseCredito",
+  "type": "object",
+  "properties": {
+    "pedido_id": {
+      "type": "string"
+    },
+    "lead_nome": {
+      "type": "string"
+    },
+    "cpf_cnpj": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number"
+    },
+    "classificacao_abc": {
+      "type": "string"
+    },
+    "classificacao_nro": {
+      "type": "string"
+    },
+    "probabilidade_inadimplencia": {
+      "type": "number"
+    },
+    "texto_risco": {
+      "type": "string"
+    },
+    "chave_consulta": {
+      "type": "string"
+    },
+    "resultado": {
+      "type": "string",
+      "enum": [
+        "aprovado",
+        "reprovado",
+        "manual",
+        "erro"
+      ],
+      "default": "manual"
+    },
+    "observacao": {
+      "type": "string"
+    }
+  },
+  "required": []
+}

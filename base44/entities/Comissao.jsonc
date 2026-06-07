@@ -1,0 +1,47 @@
+{
+  "name": "Comissao",
+  "type": "object",
+  "properties": {
+    "vendedor_id": {
+      "type": "string"
+    },
+    "vendedor_nome": {
+      "type": "string"
+    },
+    "pedido_id": {
+      "type": "string"
+    },
+    "lead_nome": {
+      "type": "string"
+    },
+    "plano_nome": {
+      "type": "string"
+    },
+    "valor": {
+      "type": "number"
+    },
+    "percentual": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "a_receber",
+        "pago"
+      ],
+      "default": "a_receber"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "vendedor",
+        "revendedor",
+        "gerente"
+      ],
+      "default": "vendedor"
+    }
+  },
+  "required": [
+    "valor"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "Contrato",
+  "type": "object",
+  "properties": {
+    "pedido_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "gerado",
+        "enviado",
+        "assinado",
+        "arquivado"
+      ],
+      "default": "gerado"
+    },
+    "link_assinatura": {
+      "type": "string"
+    },
+    "id_zapsign": {
+      "type": "string"
+    },
+    "data_assinatura": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "url_pdf": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "cliente_email": {
+      "type": "string"
+    },
+    "cliente_telefone": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "pedido_id"
+  ]
+}

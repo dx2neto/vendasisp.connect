@@ -1,0 +1,90 @@
+{
+  "name": "Pedido",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string"
+    },
+    "lead_nome": {
+      "type": "string"
+    },
+    "lead_cpf": {
+      "type": "string"
+    },
+    "plano_id": {
+      "type": "string"
+    },
+    "plano_nome": {
+      "type": "string"
+    },
+    "valor": {
+      "type": "number"
+    },
+    "vendedor_id": {
+      "type": "string"
+    },
+    "vendedor_nome": {
+      "type": "string"
+    },
+    "revendedor_id": {
+      "type": "string"
+    },
+    "revendedor_nome": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "novo",
+        "analise_credito",
+        "viabilidade",
+        "contrato_pendente",
+        "assinado",
+        "ativado",
+        "recusado"
+      ],
+      "default": "novo"
+    },
+    "id_cliente_ixc": {
+      "type": "string"
+    },
+    "id_contrato_ixc": {
+      "type": "string"
+    },
+    "id_os_ixc": {
+      "type": "string"
+    },
+    "link_assinatura": {
+      "type": "string"
+    },
+    "sincronizado_ixc": {
+      "type": "boolean",
+      "default": false
+    },
+    "data_credito": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_viabilidade": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_contrato": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_ativacao": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "canal_origem": {
+      "type": "string"
+    },
+    "observacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "lead_nome"
+  ]
+}

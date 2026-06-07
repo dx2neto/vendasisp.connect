@@ -1,0 +1,103 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome completo"
+    },
+    "cnpj_cpf": {
+      "type": "string",
+      "description": "CPF ou CNPJ"
+    },
+    "tipo_pessoa": {
+      "type": "string",
+      "enum": [
+        "F",
+        "J"
+      ],
+      "default": "F"
+    },
+    "rg": {
+      "type": "string"
+    },
+    "telefone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "cep": {
+      "type": "string"
+    },
+    "rua": {
+      "type": "string"
+    },
+    "numero": {
+      "type": "string"
+    },
+    "complemento": {
+      "type": "string"
+    },
+    "bairro": {
+      "type": "string"
+    },
+    "cidade_nome": {
+      "type": "string"
+    },
+    "id_cidade_ixc": {
+      "type": "string"
+    },
+    "uf": {
+      "type": "string"
+    },
+    "canal_origem": {
+      "type": "string",
+      "enum": [
+        "porta_a_porta",
+        "call_center",
+        "revenda",
+        "site"
+      ],
+      "default": "site"
+    },
+    "data_entrada": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "etapa_funil": {
+      "type": "string",
+      "enum": [
+        "novo",
+        "analise_credito",
+        "viabilidade",
+        "contrato",
+        "ativado",
+        "recusado"
+      ],
+      "default": "novo"
+    },
+    "vendedor_id": {
+      "type": "string"
+    },
+    "vendedor_nome": {
+      "type": "string"
+    },
+    "revendedor_id": {
+      "type": "string"
+    },
+    "plano_interesse": {
+      "type": "string"
+    },
+    "id_cliente_ixc": {
+      "type": "string"
+    },
+    "observacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "nome",
+    "cnpj_cpf"
+  ]
+}

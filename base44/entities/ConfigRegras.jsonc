@@ -1,0 +1,47 @@
+{
+  "name": "ConfigRegras",
+  "type": "object",
+  "properties": {
+    "score_minimo_credito": {
+      "type": "number",
+      "default": 400
+    },
+    "probabilidade_maxima": {
+      "type": "number",
+      "default": 30
+    },
+    "comissao_percentual_padrao": {
+      "type": "number",
+      "default": 5
+    },
+    "comissao_revendedor_percentual": {
+      "type": "number",
+      "default": 8
+    },
+    "id_filial_ixc": {
+      "type": "string",
+      "default": "1"
+    },
+    "id_vendedor_ixc_padrao": {
+      "type": "string",
+      "default": "1"
+    },
+    "id_assunto_os_ixc": {
+      "type": "string",
+      "default": "1"
+    },
+    "id_setor_os_ixc": {
+      "type": "string",
+      "default": "1"
+    },
+    "contribuinte_pf": {
+      "type": "string",
+      "default": "2"
+    },
+    "status_contrato_inicial": {
+      "type": "string",
+      "default": "P"
+    }
+  },
+  "required": []
+}

@@ -1,0 +1,30 @@
+{
+  "name": "Viabilidade",
+  "type": "object",
+  "properties": {
+    "pedido_id": {
+      "type": "string"
+    },
+    "endereco": {
+      "type": "string"
+    },
+    "resultado": {
+      "type": "string",
+      "enum": [
+        "viavel",
+        "inviavel",
+        "parcial"
+      ],
+      "default": "viavel"
+    },
+    "tecnologia": {
+      "type": "string"
+    },
+    "observacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "pedido_id"
+  ]
+}
