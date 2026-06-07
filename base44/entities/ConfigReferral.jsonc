@@ -1,0 +1,45 @@
+{
+  "name": "ConfigReferral",
+  "type": "object",
+  "properties": {
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    },
+    "titulo": {
+      "type": "string",
+      "default": "Indique e Ganhe!"
+    },
+    "descricao": {
+      "type": "string",
+      "default": "Indique um amigo, ele assina e voc\u00ea ganha uma recompensa exclusiva!"
+    },
+    "recompensa_tipo": {
+      "type": "string",
+      "enum": [
+        "desconto",
+        "credito",
+        "brinde",
+        "mes_gratis"
+      ],
+      "default": "desconto"
+    },
+    "recompensa_valor": {
+      "type": "string",
+      "default": "10%"
+    },
+    "recompensa_descricao": {
+      "type": "string",
+      "default": "10% de desconto na pr\u00f3xima fatura"
+    },
+    "prazo_validade_dias": {
+      "type": "number",
+      "default": 30
+    },
+    "whatsapp_mensagem": {
+      "type": "string",
+      "description": "Mensagem padr\u00e3o compartilhada no WhatsApp"
+    }
+  },
+  "required": []
+}

@@ -1,0 +1,83 @@
+{
+  "name": "Indicacao",
+  "type": "object",
+  "properties": {
+    "indicador_nome": {
+      "type": "string",
+      "description": "Nome do cliente que indicou"
+    },
+    "indicador_telefone": {
+      "type": "string"
+    },
+    "indicador_email": {
+      "type": "string"
+    },
+    "indicador_cpf": {
+      "type": "string"
+    },
+    "indicado_nome": {
+      "type": "string",
+      "description": "Nome do amigo indicado"
+    },
+    "indicado_telefone": {
+      "type": "string"
+    },
+    "indicado_email": {
+      "type": "string"
+    },
+    "codigo_indicacao": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico gerado para rastreio"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "em_contato",
+        "convertido",
+        "expirado",
+        "cancelado"
+      ],
+      "default": "pendente"
+    },
+    "recompensa_tipo": {
+      "type": "string",
+      "enum": [
+        "desconto",
+        "credito",
+        "brinde",
+        "mes_gratis"
+      ],
+      "default": "desconto"
+    },
+    "recompensa_valor": {
+      "type": "string",
+      "description": "Ex: 10%, R$50, 1 m\u00eas"
+    },
+    "recompensa_paga": {
+      "type": "boolean",
+      "default": false
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "ID do lead criado para o indicado"
+    },
+    "pedido_id": {
+      "type": "string",
+      "description": "ID do pedido quando convertido"
+    },
+    "observacao": {
+      "type": "string"
+    },
+    "data_conversao": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "indicador_nome",
+    "indicador_telefone",
+    "indicado_nome",
+    "indicado_telefone"
+  ]
+}

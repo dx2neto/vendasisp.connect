@@ -33,6 +33,7 @@ import Loja from "@/pages/Loja";
 import Assinatura from "@/pages/Assinatura";
 import Roleta from "@/pages/Roleta";
 import ConfigRoleta from "@/pages/ConfigRoleta";
+import SiteInstitucional from "@/pages/SiteInstitucional";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
       <Route path="/loja" element={<Loja />} />
       <Route path="/assine" element={<Assinatura />} />
       <Route path="/roleta" element={<Roleta />} />
+      <Route path="/site" element={<SiteInstitucional />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
@@ -78,7 +80,7 @@ const AuthenticatedApp = () => {
           <Route path="/metas" element={<MetasVendas />} />
           <Route path="/desempenho" element={<DesempenhoMensal />} />
           <Route path="/templates-contrato" element={<TemplatesContrato />} />
-          <Route path="/config-roleta" element={<ConfigRoleta />} />
+          <Route path="/roleta-config" element={<ConfigRoleta />} />
         </Route>
       </Route>
 
