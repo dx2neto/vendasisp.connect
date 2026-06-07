@@ -94,6 +94,35 @@
     },
     "observacao": {
       "type": "string"
+    },
+    "historico_notas": {
+      "type": "array",
+      "description": "Hist\u00f3rico de notas e observa\u00e7\u00f5es",
+      "items": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "autor": {
+            "type": "string"
+          },
+          "nota": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "contato",
+              "negociacao",
+              "observacao",
+              "status"
+            ],
+            "default": "observacao"
+          }
+        }
+      }
     }
   },
   "required": [

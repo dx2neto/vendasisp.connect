@@ -4,9 +4,11 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Phone, Mail } from "lucide-react";
+import { Plus, Search, Phone, Mail, FileText } from "lucide-react";
 import LeadForm from "@/components/leads/LeadForm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import HistoricoNotas from "@/components/leads/HistoricoNotas";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ETAPA_COLORS = {
   novo: "bg-blue-50 text-blue-600 border-blue-200",
@@ -35,6 +37,7 @@ const CANAL_LABELS = {
 
 export default function Leads() {
   const [showForm, setShowForm] = useState(false);
+  const [selectedLead, setSelectedLead] = useState(null);
   const [editingLead, setEditingLead] = useState(null);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
@@ -76,6 +79,18 @@ export default function Leads() {
     }
   };
 
+  const handleAdicionarNota = (novaNota) => {
+    if (!selectedLead) return;
+
+    const notasAtualizadas = [...(selectedLead.historico_notas || []), novaNota];
+    updateMutation.mutate({
+      id: selectedLead.id,
+      data: { historico_notas: notasAtualizadas },
+    });
+
+    setSelectedLead({ ...selectedLead, historico_notas: notasAtualizadas });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -99,18 +114,19 @@ export default function Leads() {
       </div>
 
       <div className="rounded-2xl bg-card border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Nome</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">CPF/CNPJ</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Contato</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Canal</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Etapa</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Cidade</th>
-              </tr>
-            </thead>
+         <div className="overflow-x-auto">
+           <table className="w-full text-sm">
+             <thead>
+               <tr className="border-b border-border bg-muted/50">
+                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Nome</th>
+                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">CPF/CNPJ</th>
+                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Contato</th>
+                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Canal</th>
+                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Etapa</th>
+                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Cidade</th>
+                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Ações</th>
+               </tr>
+             </thead>
             <tbody>
               {isLoading ? (
                 <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Carregando...</td></tr>
@@ -118,10 +134,9 @@ export default function Leads() {
                 <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Nenhum lead encontrado</td></tr>
               ) : filtered.map(lead => (
                 <tr
-                  key={lead.id}
-                  className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
-                  onClick={() => { setEditingLead(lead); setShowForm(true); }}
-                >
+                    key={lead.id}
+                    className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                  >
                   <td className="py-3 px-4 font-medium">{lead.nome}</td>
                   <td className="py-3 px-4 text-muted-foreground font-mono text-xs">{lead.cnpj_cpf}</td>
                   <td className="py-3 px-4">
@@ -139,7 +154,27 @@ export default function Leads() {
                     </Badge>
                   </td>
                   <td className="py-3 px-4 text-muted-foreground text-xs">{lead.cidade_nome}</td>
-                </tr>
+                  <td className="py-3 px-4">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 rounded-lg h-8"
+                        onClick={() => setSelectedLead(lead)}
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-lg h-8"
+                        onClick={() => { setEditingLead(lead); setShowForm(true); }}
+                      >
+                        Editar
+                      </Button>
+                    </div>
+                  </td>
+                  </tr>
               ))}
             </tbody>
           </table>
@@ -147,17 +182,73 @@ export default function Leads() {
       </div>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingLead ? "Editar Lead" : "Novo Lead"}</DialogTitle>
-          </DialogHeader>
-          <LeadForm
-            lead={editingLead}
-            onSubmit={handleSubmit}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+           <DialogHeader>
+             <DialogTitle>{editingLead ? "Editar Lead" : "Novo Lead"}</DialogTitle>
+           </DialogHeader>
+           <LeadForm
+             lead={editingLead}
+             onSubmit={handleSubmit}
+             isLoading={createMutation.isPending || updateMutation.isPending}
+           />
+         </DialogContent>
+       </Dialog>
+
+       <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}>
+         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+           <DialogHeader>
+             <DialogTitle>Detalhes do Lead - {selectedLead?.nome}</DialogTitle>
+           </DialogHeader>
+           {selectedLead && (
+             <Tabs defaultValue="notas" className="w-full">
+               <TabsList className="grid w-full grid-cols-2 rounded-lg">
+                 <TabsTrigger value="notas" className="rounded-md">Histórico de Notas</TabsTrigger>
+                 <TabsTrigger value="info" className="rounded-md">Informações</TabsTrigger>
+               </TabsList>
+               <TabsContent value="notas" className="space-y-4">
+                 <HistoricoNotas
+                   notas={selectedLead.historico_notas}
+                   onAdicionarNota={handleAdicionarNota}
+                 />
+               </TabsContent>
+               <TabsContent value="info" className="space-y-4">
+                 <div className="grid grid-cols-2 gap-4 text-sm">
+                   <div>
+                     <p className="text-muted-foreground text-xs">Nome</p>
+                     <p className="font-medium">{selectedLead.nome}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground text-xs">CPF/CNPJ</p>
+                     <p className="font-medium font-mono">{selectedLead.cnpj_cpf}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground text-xs">Telefone</p>
+                     <p className="font-medium">{selectedLead.telefone || "—"}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground text-xs">Email</p>
+                     <p className="font-medium text-xs break-all">{selectedLead.email || "—"}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground text-xs">Etapa</p>
+                     <Badge variant="outline" className={`text-xs ${ETAPA_COLORS[selectedLead.etapa_funil]}`}>
+                       {ETAPA_LABELS[selectedLead.etapa_funil]}
+                     </Badge>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground text-xs">Canal</p>
+                     <p className="font-medium text-xs">{CANAL_LABELS[selectedLead.canal_origem]}</p>
+                   </div>
+                   <div className="col-span-2">
+                     <p className="text-muted-foreground text-xs">Observação</p>
+                     <p className="text-sm">{selectedLead.observacao || "—"}</p>
+                   </div>
+                 </div>
+               </TabsContent>
+             </Tabs>
+           )}
+         </DialogContent>
+       </Dialog>
+      </div>
+      );
+      }
