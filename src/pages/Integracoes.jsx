@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Loader2, RefreshCw, AlertCircle, Zap, Database, Mail, Clock, Activity } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, RefreshCw, AlertCircle, Zap, Database, Mail, Clock, Activity, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import IntegracaoForm from "@/components/integracoes/IntegracaoForm";
 
-function IntegrationCard({ name, icon: Icon, status, lastSync, error, onTest, testing, description }) {
+function IntegrationCard({ name, icon: Icon, status, lastSync, error, onTest, testing, description, onConfigure }) {
   return (
     <Card className="rounded-2xl border border-border overflow-hidden">
       <CardHeader className="pb-3">
@@ -55,25 +56,35 @@ function IntegrationCard({ name, icon: Icon, status, lastSync, error, onTest, te
           </div>
         )}
 
-        <Button
-          onClick={onTest}
-          disabled={testing}
-          variant={status === "ok" ? "outline" : "default"}
-          className="w-full gap-2 rounded-xl"
-          size="sm"
-        >
-          {testing ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Testando...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-3.5 h-3.5" />
-              Testar Conexão
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={onTest}
+            disabled={testing}
+            variant={status === "ok" ? "outline" : "default"}
+            className="flex-1 gap-2 rounded-xl"
+            size="sm"
+          >
+            {testing ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Testando...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3.5 h-3.5" />
+                Testar
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={onConfigure}
+            variant="outline"
+            className="rounded-xl"
+            size="sm"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -105,12 +116,24 @@ function LogItem({ timestamp, status, message, details }) {
 }
 
 export default function Integracoes() {
+  const queryClient = useQueryClient();
   const [testResults, setTestResults] = useState({});
   const [testing, setTesting] = useState({});
+  const [formOpen, setFormOpen] = useState(null);
+  const [formData, setFormData] = useState({});
 
   const { data: pedidos = [] } = useQuery({ queryKey: ["pedidos"], queryFn: () => base44.entities.Pedido.list("-updated_date", 50) });
   const { data: analises = [] } = useQuery({ queryKey: ["analises"], queryFn: () => base44.entities.AnaliseCredito.list("-created_date", 50) });
   const { data: contratos = [] } = useQuery({ queryKey: ["contratos"], queryFn: () => base44.entities.Contrato.list("-updated_date", 50) });
+  const { data: config = {} } = useQuery({ queryKey: ["configIntegracao"], queryFn: () => base44.entities.ConfigRegras.list().then(r => r[0] || {}) });
+
+  const { mutate: saveIntegration, isPending: saving } = useMutation({
+    mutationFn: (data) => base44.entities.ConfigRegras.update(config.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["configIntegracao"] });
+      setFormOpen(null);
+    }
+  });
 
   const testIntegration = async (service) => {
     setTesting(prev => ({ ...prev, [service]: true }));
@@ -146,6 +169,12 @@ export default function Integracoes() {
         ? format(new Date(pedidos.find(p => p.sincronizado_ixc).updated_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
         : "Nunca",
       error: testResults.ixc?.error,
+      fields: [
+        { key: "id_host_ixc", label: "Host", placeholder: "https://seu-ixc.com.br", type: "text" },
+        { key: "id_usuario_ixc", label: "Usuário", placeholder: "usuario", type: "text" },
+        { key: "id_senha_ixc", label: "Senha", placeholder: "••••••••", type: "password" },
+        { key: "id_filial_ixc", label: "ID Filial", placeholder: "1", type: "text" },
+      ]
     },
     {
       id: "zapsign",
@@ -157,6 +186,9 @@ export default function Integracoes() {
         ? format(new Date(contratos.find(c => c.data_assinatura).data_assinatura), "dd/MM/yyyy HH:mm", { locale: ptBR })
         : "Nunca",
       error: null,
+      fields: [
+        { key: "id_zapsign_token", label: "Token", placeholder: "Cole seu token ZapSign", type: "textarea", help: "Obtenha em https://app.zapsign.com.br" },
+      ]
     },
     {
       id: "valido",
@@ -168,6 +200,9 @@ export default function Integracoes() {
         ? format(new Date(analises[0].created_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
         : "Nunca",
       error: null,
+      fields: [
+        { key: "id_valido_key", label: "Chave de Acesso", placeholder: "Sua chave Valido", type: "password" },
+      ]
     },
   ];
 
@@ -239,6 +274,10 @@ export default function Integracoes() {
                 error={int.error}
                 onTest={() => testIntegration(int.id)}
                 testing={testing[int.id]}
+                onConfigure={() => {
+                  setFormOpen(int.id);
+                  setFormData({ ...config, name: int.name, fields: int.fields });
+                }}
               />
             ))}
           </div>
@@ -321,6 +360,14 @@ export default function Integracoes() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <IntegracaoForm
+        isOpen={!!formOpen}
+        onClose={() => setFormOpen(null)}
+        integration={formData}
+        loading={saving}
+        onSave={(data) => saveIntegration(data)}
+      />
     </div>
   );
 }
