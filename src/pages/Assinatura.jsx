@@ -482,7 +482,7 @@ function UploadCard({ label, doc, loading, onFile, onRemove }) {
 }
 
 // ─── Etapa 4: Contrato e Assinatura ──────────────────────────────────────────
-function EtapaContrato({ endereco, plano, dados, docs, onSubmit, isLoading, onBack }) {
+function EtapaContrato({ endereco, plano, dados, docs, onSubmit, isLoading, linkAssinatura, onBack }) {
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [termos, setTermos] = useState(false);
   const [termoAdesao, setTermoAdesao] = useState(false);
@@ -495,32 +495,75 @@ function EtapaContrato({ endereco, plano, dados, docs, onSubmit, isLoading, onBa
 
   const template = templates.find(t => t.id === templateSelecionado);
 
-  // Preenche variáveis do template
   const preencherTemplate = (conteudo) => {
     if (!conteudo) return "";
     const now = new Date();
     const vars = {
-      cliente_nome: endereco.nome,
-      cliente_cpf: dados.cpf || "",
-      cliente_rg: dados.rg || "",
-      cliente_email: endereco.email,
-      cliente_telefone: endereco.telefone,
+      cliente_nome: endereco.nome, cliente_cpf: dados.cpf || "", cliente_rg: dados.rg || "",
+      cliente_email: endereco.email, cliente_telefone: endereco.telefone,
       cliente_endereco: `${dados.end_instalacao_rua || endereco.endereco}, ${dados.end_instalacao_numero || endereco.numero}`,
       cliente_bairro: dados.end_instalacao_bairro || endereco.bairro,
       cliente_cidade: dados.end_instalacao_cidade || endereco.cidade,
-      cliente_uf: endereco.uf || "",
-      cliente_cep: dados.end_instalacao_cep || endereco.cep,
-      plano_nome: plano.plano.nome,
-      plano_valor: fmtBRL(plano.total),
+      cliente_uf: endereco.uf || "", cliente_cep: dados.end_instalacao_cep || endereco.cep,
+      plano_nome: plano.plano.nome, plano_valor: fmtBRL(plano.total),
       plano_velocidade: `${plano.plano.velocidade_mbps} Mbps`,
-      fidelidade: dados.fidelidade || "12 meses",
-      vencimento_dia: dados.vencimento || "10",
+      fidelidade: dados.fidelidade || "12 meses", vencimento_dia: dados.vencimento || "10",
       data_hoje: now.toLocaleDateString("pt-BR"),
       data_extenso: now.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }),
       cidade_contrato: dados.end_instalacao_cidade || endereco.cidade,
     };
     return conteudo.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || `{{${k}}}`);
   };
+
+  // Se já tem link de assinatura, mostra painel de assinatura inline
+  if (linkAssinatura) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-8">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <h1 className="text-2xl font-bold text-center text-gray-800">FINALIZE SUA ASSINATURA ONLINE</h1>
+          <StepBar etapa={4} />
+          <PlanoBanner plano={plano} />
+
+          <div className="bg-white rounded-xl border border-emerald-300 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                <PenLine className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="font-bold text-gray-800">Contrato pronto para assinar!</h2>
+                <p className="text-xs text-gray-500">Link também enviado para {endereco.email} e WhatsApp</p>
+              </div>
+            </div>
+
+            {/* Iframe de assinatura inline */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <iframe
+                src={linkAssinatura}
+                className="w-full"
+                style={{ height: "520px" }}
+                title="Assinatura Digital"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a href={linkAssinatura} target="_blank" rel="noopener noreferrer" className="flex-1">
+                <Button variant="outline" className="w-full rounded-xl gap-2">
+                  <Eye className="w-4 h-4" /> Abrir em nova aba
+                </Button>
+              </a>
+              <Button className="flex-1 rounded-xl gap-2" onClick={() => onSubmit({ done: true })}>
+                <CheckCircle className="w-4 h-4" /> Já assinei — Concluir
+              </Button>
+            </div>
+
+            <p className="text-xs text-gray-400 text-center">
+              Você também pode assinar depois — o link foi enviado por e-mail e WhatsApp.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const canSubmit = termos && termoAdesao && !isLoading;
 
@@ -540,15 +583,13 @@ function EtapaContrato({ endereco, plano, dados, docs, onSubmit, isLoading, onBa
               <option value="">Selecione o modelo de contrato</option>
               {templates.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </select>
-
             {template && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowContrato(!showContrato)}>
                 <Eye className="w-4 h-4" />{showContrato ? "Ocultar contrato" : "Visualizar contrato preenchido"}
               </Button>
             )}
-
             {showContrato && template && (
-              <div className="border border-gray-200 rounded-xl p-5 bg-gray-50 max-h-96 overflow-y-auto">
+              <div className="border border-gray-200 rounded-xl p-5 bg-gray-50 max-h-80 overflow-y-auto">
                 <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
                   {preencherTemplate(template.conteudo)}
                 </pre>
@@ -565,13 +606,12 @@ function EtapaContrato({ endereco, plano, dados, docs, onSubmit, isLoading, onBa
           <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 max-h-48 overflow-y-auto text-xs text-gray-700 leading-relaxed space-y-2">
             <p><strong>TERMOS E CONDIÇÕES DE PRESTAÇÃO DE SERVIÇO DE INTERNET</strong></p>
             <p>Ao assinar este termo, o CONTRATANTE declara ter lido e concordado com as condições gerais de prestação de serviço de internet banda larga da <strong>Connect Telecom</strong>.</p>
-            <p><strong>1. OBJETO:</strong> O presente contrato tem por objeto a prestação de serviço de acesso à internet em banda larga conforme o plano contratado.</p>
-            <p><strong>2. PRAZO:</strong> O contrato terá fidelidade de {dados?.fidelidade || "12 meses"} a contar da data de ativação do serviço.</p>
-            <p><strong>3. PAGAMENTO:</strong> A mensalidade no valor de {fmtBRL(plano?.total)} deverá ser paga até o dia {dados?.vencimento || "10"} de cada mês.</p>
-            <p><strong>4. INSTALAÇÃO:</strong> A instalação será agendada após confirmação do cadastro e análise de viabilidade técnica no endereço informado.</p>
-            <p><strong>5. CANCELAMENTO:</strong> O cancelamento antes do término da fidelidade implicará em multa proporcional ao período restante, conforme legislação vigente.</p>
-            <p><strong>6. SUPORTE:</strong> O suporte técnico está disponível pelos canais oficiais da empresa durante o horário comercial.</p>
-            <p>O contratante declara que todas as informações fornecidas são verídicas e assume responsabilidade por sua veracidade.</p>
+            <p><strong>1. OBJETO:</strong> Prestação de serviço de acesso à internet em banda larga conforme o plano contratado.</p>
+            <p><strong>2. PRAZO:</strong> Fidelidade de {dados?.fidelidade || "12 meses"} a contar da data de ativação.</p>
+            <p><strong>3. PAGAMENTO:</strong> Mensalidade de {fmtBRL(plano?.total)} até o dia {dados?.vencimento || "10"} de cada mês.</p>
+            <p><strong>4. INSTALAÇÃO:</strong> Agendada após confirmação do cadastro e viabilidade técnica.</p>
+            <p><strong>5. CANCELAMENTO:</strong> Multa proporcional ao período de fidelidade restante.</p>
+            <p><strong>6. SUPORTE:</strong> Disponível pelos canais oficiais no horário comercial.</p>
           </div>
           <label className="flex items-start gap-2 text-sm cursor-pointer">
             <input type="checkbox" className="mt-0.5" checked={termoAdesao} onChange={e => setTermoAdesao(e.target.checked)} />
@@ -579,31 +619,32 @@ function EtapaContrato({ endereco, plano, dados, docs, onSubmit, isLoading, onBa
           </label>
         </div>
 
-        {/* Assinatura digital */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+        {/* Resumo + botão */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 className="font-bold text-primary uppercase text-sm tracking-wide flex items-center gap-2">
             <PenLine className="w-4 h-4" /> Assinatura Digital
           </h2>
-          <p className="text-xs text-gray-500">
-            Ao confirmar, criaremos seu cadastro e enviaremos um <strong>link de assinatura digital</strong> para o e-mail <strong>{endereco.email}</strong> e WhatsApp em até 24 horas para formalizar o contrato via ZapSign.
-          </p>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 space-y-1">
-            <p className="font-semibold">Resumo da contratação:</p>
+            <p className="font-semibold">Resumo:</p>
             <p>• Plano: <strong>{plano.plano.nome}</strong> — {fmtBRL(plano.total)}/mês</p>
-            <p>• Fidelidade: <strong>{dados?.fidelidade || "12 meses"}</strong></p>
-            <p>• Vencimento: <strong>Dia {dados?.vencimento || "10"}</strong></p>
+            <p>• Fidelidade: <strong>{dados?.fidelidade || "12 meses"}</strong> | Vencimento: <strong>Dia {dados?.vencimento || "10"}</strong></p>
             <p>• Endereço: <strong>{dados?.end_instalacao_rua || endereco.endereco}, {dados?.end_instalacao_numero || endereco.numero} — {dados?.end_instalacao_cidade || endereco.cidade}</strong></p>
+          </div>
+
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-800 space-y-1">
+            <p className="font-semibold">📱 Como funciona:</p>
+            <p>Ao clicar em <strong>"Assinar Agora"</strong>, seu contrato será gerado e você poderá assinar diretamente aqui na página. O link também será enviado para <strong>{endereco.email}</strong> e <strong>WhatsApp ({endereco.telefone})</strong>.</p>
           </div>
 
           <label className="flex items-start gap-2 text-sm cursor-pointer">
             <input type="checkbox" className="mt-0.5" checked={termos} onChange={e => setTermos(e.target.checked)} />
-            <span className="text-gray-600">Confirmo que li todas as informações acima e autorizo o envio do link de assinatura digital para meu e-mail.</span>
+            <span className="text-gray-600">Confirmo que li e aceito todas as condições acima.</span>
           </label>
 
           <Button className="w-full rounded-xl h-12 font-bold text-base gap-2"
             disabled={!canSubmit} onClick={() => onSubmit({ templateId: templateSelecionado })}>
-            {isLoading ? (<><Loader2 className="w-4 h-4 animate-spin" /> Processando...</>) : (<><PenLine className="w-4 h-4" /> Confirmar e Assinar Digitalmente</>)}
+            {isLoading ? (<><Loader2 className="w-4 h-4 animate-spin" /> Gerando contrato...</>) : (<><PenLine className="w-4 h-4" /> Assinar Agora</>)}
           </Button>
         </div>
 
@@ -662,6 +703,7 @@ export default function Assinatura() {
   const [planoInfo, setPlanoInfo] = useState(null);
   const [dados, setDados] = useState(null);
   const [docs, setDocs] = useState(null);
+  const [linkAssinatura, setLinkAssinatura] = useState(null);
 
   const urlParams = new URLSearchParams(window.location.search);
   const vendedorId = urlParams.get("v") || null;
@@ -672,60 +714,43 @@ export default function Assinatura() {
   });
 
   const criarMutation = useMutation({
-    mutationFn: async ({ templateId }) => {
-      const lead = await base44.entities.Lead.create({
-        nome: endereco.nome,
-        cnpj_cpf: dados.cpf || "",
-        rg: dados.rg || "",
-        tipo_pessoa: "F",
-        email: endereco.email,
-        telefone: endereco.telefone,
-        cep: endereco.cep,
-        rua: dados.end_instalacao_rua || endereco.endereco,
-        numero: dados.end_instalacao_numero || endereco.numero,
-        bairro: dados.end_instalacao_bairro || endereco.bairro,
-        cidade_nome: dados.end_instalacao_cidade || endereco.cidade,
-        uf: endereco.uf,
-        canal_origem: vendedorId ? "revenda" : "site",
-        etapa_funil: "novo",
-        observacao: dados.observacoes || "",
+    mutationFn: async ({ templateId, done }) => {
+      // Se o usuário clicou "Já assinei", vai direto pra confirmação
+      if (done) return { link_assinatura: linkAssinatura };
+
+      const res = await base44.functions.invoke("assinarOnline", {
+        endereco,
+        plano_info: planoInfo,
+        dados,
+        template_id: templateId || null,
+        vendedor_id: vendedorId || null,
       });
-
-      const pedido = await base44.entities.Pedido.create({
-        lead_id: lead.id,
-        lead_nome: endereco.nome,
-        lead_cpf: dados.cpf || "",
-        plano_id: planoInfo.plano.id,
-        plano_nome: planoInfo.plano.nome,
-        valor: planoInfo.total,
-        vendedor_id: vendedorId || "",
-        status: "novo",
-        canal_origem: vendedorId ? "revenda" : "site",
-        observacao: `Fidelidade: ${dados.fidelidade} | Vencimento: dia ${dados.vencimento}`,
-      });
-
-      // Se há template selecionado, envia o contrato via ZapSign
-      if (templateId) {
-        await base44.functions.invoke("enviarContrato", {
-          pedido_id: pedido.id,
-          template_id: templateId,
-          cliente_email: endereco.email,
-          cliente_nome: endereco.nome,
-        });
-      }
-
-      return pedido;
+      return res.data;
     },
-    onSuccess: () => setEtapa(5),
+    onSuccess: (data) => {
+      if (data?.done) { setEtapa(5); return; }
+      if (data?.link_assinatura) {
+        setLinkAssinatura(data.link_assinatura);
+        // Mantém na etapa 4 para assinar inline, mas mostra o iframe
+      } else {
+        // Sem ZapSign configurado, vai direto pra confirmação
+        setEtapa(5);
+      }
+    },
     onError: (e) => toast.error("Erro ao processar: " + e.message),
   });
 
-  const reset = () => { setEtapa(0); setEndereco(null); setPlanoInfo(null); setDados(null); setDocs(null); };
+  const reset = () => {
+    setEtapa(0); setEndereco(null); setPlanoInfo(null);
+    setDados(null); setDocs(null); setLinkAssinatura(null);
+  };
 
   if (etapa === 0) return <EtapaEndereco onNext={e => { setEndereco(e); setEtapa(1); }} />;
   if (etapa === 1) return <EtapaPlanos endereco={endereco} planos={planos} onNext={p => { setPlanoInfo(p); setEtapa(2); }} onBack={() => setEtapa(0)} />;
   if (etapa === 2) return <EtapaDados endereco={endereco} plano={planoInfo} onNext={d => { setDados(d); setEtapa(3); }} onBack={() => setEtapa(1)} />;
   if (etapa === 3) return <EtapaDocumentos endereco={endereco} plano={planoInfo} dados={dados} onNext={d => { setDocs(d); setEtapa(4); }} onBack={() => setEtapa(2)} />;
-  if (etapa === 4) return <EtapaContrato endereco={endereco} plano={planoInfo} dados={dados} docs={docs} isLoading={criarMutation.isPending} onSubmit={p => criarMutation.mutate(p)} onBack={() => setEtapa(3)} />;
+  if (etapa === 4) return <EtapaContrato endereco={endereco} plano={planoInfo} dados={dados} docs={docs}
+    isLoading={criarMutation.isPending} linkAssinatura={linkAssinatura}
+    onSubmit={p => criarMutation.mutate(p)} onBack={() => setEtapa(3)} />;
   if (etapa === 5) return <EtapaConfirmacao plano={planoInfo} endereco={endereco} dados={dados} onNova={reset} />;
 }
