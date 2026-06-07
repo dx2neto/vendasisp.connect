@@ -9,6 +9,7 @@ import { TrendingUp, DollarSign, Target, ShoppingCart, ArrowUpRight, ArrowDownLe
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import BadgesConquistas from "@/components/vendedor/BadgesConquistas";
 
 function MetricCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -50,7 +51,7 @@ export default function VendedorDashboard() {
 
   const { data: metas = [] } = useQuery({
     queryKey: ["metas"],
-    queryFn: () => base44.entities.Meta?.list("-created_date", 100).catch(() => []),
+    queryFn: () => base44.entities.MetaVendedor?.list?.("-created_date", 100).catch(() => []) || Promise.resolve([]),
   });
 
   if (!vendedorData) {
@@ -210,6 +211,13 @@ export default function VendedorDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Conquistas */}
+      <BadgesConquistas
+        pedidos={pedidosVendedor}
+        metas={metas}
+        vendedorNome={vendedorData.full_name}
+      />
 
       {/* Atalhos Rápidos */}
       <div>
