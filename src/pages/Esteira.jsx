@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { User, DollarSign, Calendar, CheckCircle2, Zap } from "lucide-react";
+import { User, DollarSign, Calendar, CheckCircle2, Zap, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 const STATUS_COLORS = {
   novo: "bg-blue-50 text-blue-600 border-blue-200",
@@ -35,11 +36,33 @@ const COLUMNS = [
 export default function Esteira() {
   const queryClient = useQueryClient();
   const [selectedPedido, setSelectedPedido] = useState(null);
+  const [pedidosNovos, setPedidosNovos] = useState(new Set());
 
   const { data: pedidos = [] } = useQuery({
     queryKey: ["pedidos"],
     queryFn: () => base44.entities.Pedido.list("-created_date", 200),
   });
+
+  // Subscreve a atualizações em tempo real de pedidos
+  useEffect(() => {
+    const unsubscribe = base44.entities.Pedido.subscribe((event) => {
+      if (event.type === "create") {
+        setPedidosNovos(prev => new Set([...prev, event.id]));
+        toast.success(`Novo pedido criado: ${event.data.lead_nome}`);
+        queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+        
+        // Remove indicador após 10 segundos
+        setTimeout(() => {
+          setPedidosNovos(prev => {
+            const novo = new Set(prev);
+            novo.delete(event.id);
+            return novo;
+          });
+        }, 10000);
+      }
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Pedido.update(id, data),
@@ -139,8 +162,15 @@ export default function Esteira() {
                                 snapshot.isDragging && "shadow-xl shadow-primary/15 rotate-1 scale-[1.02] border-primary/30"
                               )}
                             >
-                              {/* Nome */}
-                              <p className="font-semibold text-sm leading-tight mb-1.5">{pedido.lead_nome}</p>
+                              {/* Nome + Badge Novo */}
+                              <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <p className="font-semibold text-sm leading-tight">{pedido.lead_nome}</p>
+                                {pedidosNovos.has(pedido.id) && (
+                                  <Badge className="text-[10px] py-0.5 px-1.5 bg-emerald-50 text-emerald-600 border-emerald-200 gap-1 flex-shrink-0 animate-pulse" variant="outline">
+                                    <Sparkles className="w-2.5 h-2.5" />Novo
+                                  </Badge>
+                                )}
+                              </div>
 
                               {/* Plano */}
                               {pedido.plano_nome && (
@@ -169,6 +199,11 @@ export default function Esteira() {
                                   <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
                                     {format(new Date(pedido.created_date), "dd/MM", { locale: ptBR })}
                                   </span>
+                                )}
+                                {pedido.canal_origem === "api_credito" && (
+                                  <Badge className="text-[10px] py-0 px-1.5 bg-blue-50 text-blue-600 border-blue-200 h-4" variant="outline">
+                                    Crédito
+                                  </Badge>
                                 )}
                                 {pedido.sincronizado_ixc && (
                                   <Badge className="text-[10px] py-0 px-1.5 bg-emerald-50 text-emerald-600 border-emerald-200 h-4" variant="outline">
