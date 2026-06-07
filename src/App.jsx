@@ -26,6 +26,7 @@ import Configuracoes from "@/pages/Configuracoes";
 import Integracoes from "@/pages/Integracoes";
 import VendedorDashboard from "@/pages/VendedorDashboard";
 import Analytics from "@/pages/Analytics";
+import MetasVendas from "@/pages/MetasVendas";
 import Loja from "@/pages/Loja";
 
 const AuthenticatedApp = () => {
@@ -67,6 +68,7 @@ const AuthenticatedApp = () => {
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="/vendedor" element={<VendedorDashboard />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/metas" element={<MetasVendas />} />
         </Route>
       </Route>
 

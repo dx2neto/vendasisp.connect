@@ -121,7 +121,7 @@ export default function PedidoAcoes({ pedido, lead }) {
       )}
 
       {/* Ação de Ativação */}
-      {(s === "assinado" || s === "contrato_pendente") && !pedido.sincronizado_ixc && (
+      {s === "assinado" && !pedido.sincronizado_ixc && (
         <Button
           size="sm"
           className="w-full gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -129,7 +129,7 @@ export default function PedidoAcoes({ pedido, lead }) {
           disabled={isLoading}
         >
           {ativarMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-          Ativar no IXC
+          Ativar Cliente no IXC
         </Button>
       )}
 

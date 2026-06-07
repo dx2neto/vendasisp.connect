@@ -1,0 +1,23 @@
+{
+  "name": "MetaVendedor",
+  "type": "object",
+  "properties": {
+    "vendedor_nome": {
+      "type": "string",
+      "description": "Nome do vendedor"
+    },
+    "mes": {
+      "type": "string",
+      "description": "M\u00eas no formato YYYY-MM"
+    },
+    "meta_valor": {
+      "type": "number",
+      "description": "Valor da meta em R$"
+    }
+  },
+  "required": [
+    "vendedor_nome",
+    "mes",
+    "meta_valor"
+  ]
+}
