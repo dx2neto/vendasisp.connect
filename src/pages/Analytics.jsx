@@ -144,10 +144,10 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">Dashboard com performance e KPIs</p>
+          <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Dashboard com performance e KPIs</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {["1m", "3m", "6m"].map(p => (
@@ -156,76 +156,76 @@ export default function Analytics() {
               variant={periodo === p ? "default" : "outline"}
               size="sm"
               onClick={() => setPeriodo(p)}
-              className="rounded-lg"
+              className="rounded-lg text-xs sm:text-sm"
             >
-              {p === "1m" ? "1 mês" : p === "3m" ? "3 meses" : "6 meses"}
+              {p === "1m" ? "1m" : p === "3m" ? "3m" : "6m"}
             </Button>
           ))}
-          <Button onClick={exportarPDF} className="gap-2 rounded-lg" size="sm">
-            <Download className="w-4 h-4" />
-            PDF
+          <Button onClick={exportarPDF} className="gap-2 rounded-lg ml-auto" size="sm" variant="outline">
+            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">PDF</span>
           </Button>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-2xl border border-border">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Total Vendido</p>
-                <p className="text-2xl font-bold mt-2 text-primary">R$ {totalVendas.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="rounded-xl sm:rounded-2xl border border-border">
+          <CardContent className="p-3 sm:p-5">
+            <div className="flex flex-col justify-between h-full">
+              <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase">Vendido</p>
+              <div className="flex items-end justify-between mt-2">
+                <p className="text-lg sm:text-2xl font-bold text-primary">R$ {(totalVendas / 1000).toFixed(0)}k</p>
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
               </div>
-              <DollarSign className="w-5 h-5 text-primary" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border border-border">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Comissões</p>
-                <p className="text-2xl font-bold mt-2 text-emerald-600">R$ {totalComissoes.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</p>
+        <Card className="rounded-xl sm:rounded-2xl border border-border">
+          <CardContent className="p-3 sm:p-5">
+            <div className="flex flex-col justify-between h-full">
+              <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase">Comissões</p>
+              <div className="flex items-end justify-between mt-2">
+                <p className="text-lg sm:text-2xl font-bold text-emerald-600">R$ {(totalComissoes / 1000).toFixed(0)}k</p>
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 flex-shrink-0" />
               </div>
-              <TrendingUp className="w-5 h-5 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border border-border">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Ticket Médio</p>
-                <p className="text-2xl font-bold mt-2">R$ {Number(ticketMedio).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</p>
+        <Card className="rounded-xl sm:rounded-2xl border border-border">
+          <CardContent className="p-3 sm:p-5">
+            <div className="flex flex-col justify-between h-full">
+              <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase">Ticket</p>
+              <div className="flex items-end justify-between mt-2">
+                <p className="text-lg sm:text-2xl font-bold">R$ {(Number(ticketMedio) / 1000).toFixed(1)}k</p>
+                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
               </div>
-              <ShoppingCart className="w-5 h-5 text-primary" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border border-border">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Conversão</p>
-                <p className="text-2xl font-bold mt-2">{taxaConversao}%</p>
+        <Card className="rounded-xl sm:rounded-2xl border border-border">
+          <CardContent className="p-3 sm:p-5">
+            <div className="flex flex-col justify-between h-full">
+              <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase">Conv.</p>
+              <div className="flex items-end justify-between mt-2">
+                <p className="text-lg sm:text-2xl font-bold">{taxaConversao}%</p>
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
               </div>
-              <Users className="w-5 h-5 text-primary" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 rounded-2xl border border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Vendas por Período</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <Card className="lg:col-span-2 rounded-xl sm:rounded-2xl border border-border">
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">Vendas por Período</CardTitle>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartVendas}>
                 <defs>
@@ -247,11 +247,11 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Status</CardTitle>
+        <Card className="rounded-xl sm:rounded-2xl border border-border">
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">Status</CardTitle>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -274,13 +274,14 @@ export default function Analytics() {
       </div>
 
       {/* Ranking Vendedores */}
-      <Card className="rounded-2xl border border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Top 10 Vendedores</CardTitle>
+      <Card className="rounded-xl sm:rounded-2xl border border-border">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Top 10 Vendedores</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          {/* Desktop Table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase">Vendedor</th>
@@ -303,6 +304,25 @@ export default function Analytics() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="sm:hidden space-y-2">
+            {rankingVendedores.map((v, i) => (
+              <div key={v.nome} className="flex items-start justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                    <p className="font-semibold text-sm truncate">{v.nome}</p>
+                  </div>
+                  <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                    <span>R$ {(v.vendas / 1000).toFixed(0)}k</span>
+                    <span>{v.pedidos} pedidos</span>
+                    <span className="font-semibold text-emerald-600">R$ {(v.comissoes / 1000).toFixed(0)}k</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

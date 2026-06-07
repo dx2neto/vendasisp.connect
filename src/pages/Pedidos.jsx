@@ -68,23 +68,59 @@ export default function Pedidos() {
     : null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 pb-20 sm:pb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pedidos</h1>
-          <p className="text-muted-foreground mt-1">{pedidos.length} pedidos</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Pedidos</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{pedidos.length} pedidos</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2 rounded-xl">
-          <Plus className="w-4 h-4" /> Novo Pedido
+        <Button onClick={() => setShowForm(true)} className="gap-2 rounded-xl w-full sm:w-auto">
+          <Plus className="w-4 h-4" /> Novo
         </Button>
       </div>
 
-      <div className="relative max-w-md">
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome ou CPF..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 rounded-xl" />
+        <Input placeholder="Nome ou CPF..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 rounded-xl text-sm" />
       </div>
 
-      <div className="rounded-2xl bg-card border border-border overflow-hidden">
+      {/* Mobile Cards */}
+      <div className="block sm:hidden space-y-3">
+        {isLoading ? (
+          <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground text-sm">Nenhum pedido</div>
+        ) : filtered.map(p => (
+          <div key={p.id} className="bg-card border border-border rounded-xl p-4 cursor-pointer" onClick={() => setSelectedPedido(p)}>
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <p className="font-semibold text-sm">{p.lead_nome}</p>
+                <p className="text-xs text-muted-foreground font-mono">{p.lead_cpf}</p>
+              </div>
+              <Badge variant="outline" className={`text-xs ${STATUS_COLORS[p.status] || ""}`}>
+                {STATUS_LABELS[p.status] || p.status}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <p className="text-muted-foreground">Plano</p>
+                <p className="font-medium">{p.plano_nome || "—"}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-muted-foreground">Valor</p>
+                <p className="font-semibold">{p.valor ? `R$ ${p.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</p>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+              {p.vendedor_nome && <p>{p.vendedor_nome}</p>}
+              {p.sincronizado_ixc && <Badge className="mt-2 text-[10px] bg-emerald-50 text-emerald-600">Sincronizado</Badge>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden sm:block rounded-2xl bg-card border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -95,14 +131,13 @@ export default function Pedidos() {
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Vendedor</th>
                 <th className="text-center py-3 px-4 font-medium text-muted-foreground">IXC</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="py-12 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Carregando...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="py-12 text-center text-muted-foreground">Nenhum pedido</td></tr>
+                <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Nenhum pedido</td></tr>
               ) : filtered.map(p => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedPedido(p)}>
                   <td className="py-3 px-4">
@@ -124,9 +159,6 @@ export default function Pedidos() {
                       <Badge className="text-[10px] bg-emerald-50 text-emerald-600" variant="outline">Sync</Badge>
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </td>
-                  <td className="py-3 px-4">
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -136,7 +168,7 @@ export default function Pedidos() {
 
       {/* Sheet lateral com ações do pedido */}
       <Sheet open={!!selectedPedido} onOpenChange={() => setSelectedPedido(null)}>
-        <SheetContent className="w-[420px] overflow-y-auto">
+        <SheetContent className="w-full sm:w-[420px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Pedido — {selectedPedido?.lead_nome}</SheetTitle>
           </SheetHeader>
@@ -171,7 +203,7 @@ export default function Pedidos() {
 
       {/* Modal novo pedido */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-md">
           <DialogHeader><DialogTitle>Novo Pedido</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
