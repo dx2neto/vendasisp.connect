@@ -135,6 +135,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Cria rascunho de pedido automaticamente se resultado for aprovado
+    let pedidoCriado = null;
+    if (resultado === 'aprovado' && leadCriado) {
+      try {
+        pedidoCriado = await base44.asServiceRole.entities.Pedido.create({
+          lead_id: leadCriado.id,
+          lead_nome: leadCriado.nome,
+          lead_cpf: cpf_cnpj,
+          status: 'novo',
+          canal_origem: 'api_credito',
+        });
+      } catch (pedidoError) {
+        console.error('Erro ao criar pedido:', pedidoError);
+      }
+    }
+
     // Avança pedido
     if (pedido_id) {
       const novoStatus = resultado === 'aprovado' ? 'viabilidade'
@@ -152,6 +168,7 @@ Deno.serve(async (req) => {
       score, 
       probabilidade_inadimplencia: probInad,
       lead: leadCriado,
+      pedido: pedidoCriado,
       cliente: { nome, telefone, email, cidade, uf }
     });
   } catch (error) {

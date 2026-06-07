@@ -17,6 +17,7 @@ const RESULTADO_COLORS = {
 
 export default function Credito() {
   const [cpf, setCpf] = useState("");
+  const [ultimoResultado, setUltimoResultado] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: analises = [], isLoading } = useQuery({
@@ -31,8 +32,17 @@ export default function Credito() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["analises"] });
+      queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+      setUltimoResultado(data);
       setCpf("");
-      toast.success("Crédito consultado e lead gerado!");
+      
+      if (data.resultado === "aprovado") {
+        toast.success(`Lead ${data.cliente.nome} criado! Pedido rascunho gerado.`);
+      } else if (data.resultado === "reprovado") {
+        toast.error(`Crédito reprovado para ${data.cliente.nome}`);
+      } else {
+        toast.info(`Análise manual necessária para ${data.cliente.nome}`);
+      }
     },
     onError: (error) => {
       toast.error(error.message || "Erro ao consultar crédito");
@@ -83,8 +93,39 @@ export default function Credito() {
               <span className="hidden sm:inline">Consultar</span>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Puxa dados do cliente e gera lead automaticamente</p>
+          <p className="text-xs text-muted-foreground mt-2">Puxa dados do cliente, gera lead e cria pedido rascunho se aprovado</p>
         </div>
+
+        {/* Resultado da Consulta */}
+        {ultimoResultado && (
+          <div className={`p-3 sm:p-4 rounded-lg border-l-4 ${
+            ultimoResultado.resultado === "aprovado" ? "bg-emerald-50 border-emerald-500" :
+            ultimoResultado.resultado === "reprovado" ? "bg-red-50 border-red-500" :
+            "bg-amber-50 border-amber-500"
+          }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-semibold mb-1">
+                  {ultimoResultado.cliente.nome} ({ultimoResultado.cliente.email || ultimoResultado.cliente.uf})
+                </p>
+                <p className={`text-xs font-medium ${
+                  ultimoResultado.resultado === "aprovado" ? "text-emerald-700" :
+                  ultimoResultado.resultado === "reprovado" ? "text-red-700" :
+                  "text-amber-700"
+                }`}>
+                  Score: {ultimoResultado.score} • 
+                  Risco: {ultimoResultado.probabilidade_inadimplencia || "—"}% •
+                  {ultimoResultado.resultado === "aprovado" ? " ✓ APROVADO" : ultimoResultado.resultado === "reprovado" ? " ✗ REPROVADO" : " ⚠ ANÁLISE MANUAL"}
+                </p>
+              </div>
+              {ultimoResultado.pedido && (
+                <Button variant="outline" size="sm" className="rounded-lg whitespace-nowrap text-xs sm:text-sm">
+                  Ver Pedido #{ultimoResultado.pedido.id.slice(0, 8)}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
