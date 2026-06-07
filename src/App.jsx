@@ -25,6 +25,8 @@ import Revendedor from "@/pages/Revendedor";
 import Configuracoes from "@/pages/Configuracoes";
 import Integracoes from "@/pages/Integracoes";
 import VendedorDashboard from "@/pages/VendedorDashboard";
+import Analytics from "@/pages/Analytics";
+import Loja from "@/pages/Loja";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -48,6 +50,7 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/loja" element={<Loja />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
@@ -63,6 +66,7 @@ const AuthenticatedApp = () => {
           <Route path="/integracoes" element={<Integracoes />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="/vendedor" element={<VendedorDashboard />} />
+          <Route path="/analytics" element={<Analytics />} />
         </Route>
       </Route>
 
