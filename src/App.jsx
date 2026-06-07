@@ -23,6 +23,7 @@ import Comissoes from "@/pages/Comissoes";
 import Contratos from "@/pages/Contratos";
 import Revendedor from "@/pages/Revendedor";
 import Configuracoes from "@/pages/Configuracoes";
+import Integracoes from "@/pages/Integracoes";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
           <Route path="/comissoes" element={<Comissoes />} />
           <Route path="/contratos" element={<Contratos />} />
           <Route path="/revendedor" element={<Revendedor />} />
+          <Route path="/integracoes" element={<Integracoes />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
         </Route>
       </Route>

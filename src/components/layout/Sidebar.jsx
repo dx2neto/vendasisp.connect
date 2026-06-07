@@ -14,7 +14,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Zap
+  Zap,
+  Plug
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -30,6 +31,7 @@ const menuItems = [
   { label: "Comissões", icon: DollarSign, path: "/comissoes" },
   { label: "Contratos", icon: FileText, path: "/contratos" },
   { label: "Revendedor", icon: Briefcase, path: "/revendedor" },
+  { label: "Integrações", icon: Plug, path: "/integracoes" },
   { label: "Configurações", icon: Settings, path: "/configuracoes" },
 ];
 
