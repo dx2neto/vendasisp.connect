@@ -28,7 +28,7 @@ import VendedorDashboard from "@/pages/VendedorDashboard";
 import Analytics from "@/pages/Analytics";
 import MetasVendas from "@/pages/MetasVendas";
 import DesempenhoMensal from "@/pages/DesempenhoMensal";
-import TemplatesContrato from "@/pages/TemplatesContrato";
+import TemplatesContrato from "@/pages/TemplatesContrato.jsx";
 import Loja from "@/pages/Loja";
 
 const AuthenticatedApp = () => {

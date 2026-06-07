@@ -1,13 +1,12 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, FileText, Zap, Loader2, CheckCircle, AlertTriangle, ExternalLink } from "lucide-react";
+import { CreditCard, FileText, Zap, Loader2, CheckCircle, ExternalLink, ChevronDown } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import TemplatePreview, { preencherVariaveis } from "@/components/templates/TemplatePreview";
 
 const STATUS_FLOW = {
   novo: "analise_credito",
@@ -20,7 +19,7 @@ const STATUS_FLOW = {
 export default function PedidoAcoes({ pedido, lead }) {
   const queryClient = useQueryClient();
   const [showContrato, setShowContrato] = useState(false);
-  const [templateUrl, setTemplateUrl] = useState("");
+  const [templateSelecionado, setTemplateSelecionado] = useState(null);
   const [result, setResult] = useState(null);
 
   const invalidate = () => {
@@ -28,6 +27,33 @@ export default function PedidoAcoes({ pedido, lead }) {
     queryClient.invalidateQueries({ queryKey: ["analises"] });
     queryClient.invalidateQueries({ queryKey: ["comissoes"] });
     queryClient.invalidateQueries({ queryKey: ["contratos"] });
+  };
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ["templates-contrato"],
+    queryFn: () => base44.entities.TemplateContrato.filter({ ativo: true }),
+    enabled: showContrato,
+  });
+
+  // Dados reais do pedido/lead para preencher template
+  const dadosContrato = {
+    cliente_nome: pedido.lead_nome || "",
+    cliente_cpf: pedido.lead_cpf || lead?.cnpj_cpf || "",
+    cliente_email: lead?.email || "",
+    cliente_telefone: lead?.telefone || "",
+    cliente_rg: lead?.rg || "",
+    cliente_endereco: lead?.rua || "",
+    cliente_numero: lead?.numero || "",
+    cliente_complemento: lead?.complemento || "",
+    cliente_bairro: lead?.bairro || "",
+    cliente_cidade: lead?.cidade_nome || "",
+    cliente_uf: lead?.uf || "",
+    cliente_cep: lead?.cep || "",
+    plano_nome: pedido.plano_nome || "",
+    valor: pedido.valor ? pedido.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "",
+    data_contrato: new Date().toLocaleDateString("pt-BR"),
+    data_ativacao: new Date(Date.now() + 7 * 86400000).toLocaleDateString("pt-BR"),
+    vendedor_nome: pedido.vendedor_nome || "",
   };
 
   // Analisar Crédito
@@ -49,11 +75,17 @@ export default function PedidoAcoes({ pedido, lead }) {
 
   // Enviar Contrato
   const contratoMutation = useMutation({
-    mutationFn: () =>
-      base44.functions.invoke("enviarContrato", {
+    mutationFn: () => {
+      const conteudoProcessado = templateSelecionado
+        ? preencherVariaveis(templateSelecionado.conteudo, dadosContrato)
+        : "";
+      return base44.functions.invoke("enviarContrato", {
         pedido_id: pedido.id,
-        template_pdf_url: templateUrl,
-      }),
+        template_pdf_url: "",
+        conteudo_contrato: conteudoProcessado,
+        template_id: templateSelecionado?.id,
+      });
+    },
     onSuccess: (res) => {
       const d = res.data;
       setResult({ type: "contrato", data: d });
@@ -66,8 +98,7 @@ export default function PedidoAcoes({ pedido, lead }) {
 
   // Ativar no IXC
   const ativarMutation = useMutation({
-    mutationFn: () =>
-      base44.functions.invoke("ativarIXC", { pedido_id: pedido.id }),
+    mutationFn: () => base44.functions.invoke("ativarIXC", { pedido_id: pedido.id }),
     onSuccess: (res) => {
       const d = res.data;
       setResult({ type: "ativacao", data: d });
@@ -82,11 +113,10 @@ export default function PedidoAcoes({ pedido, lead }) {
 
   return (
     <div className="space-y-3">
-      {/* Ação de Crédito */}
+      {/* Analisar Crédito */}
       {(s === "novo" || s === "analise_credito") && (
         <Button
-          size="sm"
-          variant="outline"
+          size="sm" variant="outline"
           className="w-full gap-2 rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50"
           onClick={() => creditoMutation.mutate()}
           disabled={isLoading}
@@ -96,31 +126,28 @@ export default function PedidoAcoes({ pedido, lead }) {
         </Button>
       )}
 
-      {/* Ação de Contrato */}
+      {/* Enviar Contrato */}
       {(s === "viabilidade" || s === "contrato_pendente") && (
-        <>
-          {pedido.link_assinatura ? (
-            <a href={pedido.link_assinatura} target="_blank" rel="noopener noreferrer" className="block">
-              <Button size="sm" variant="outline" className="w-full gap-2 rounded-xl border-cyan-200 text-cyan-700 hover:bg-cyan-50">
-                <ExternalLink className="w-3.5 h-3.5" /> Ver Link de Assinatura
-              </Button>
-            </a>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full gap-2 rounded-xl border-cyan-200 text-cyan-700 hover:bg-cyan-50"
-              onClick={() => setShowContrato(true)}
-              disabled={isLoading}
-            >
-              {contratoMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-              Enviar Contrato (ZapSign)
+        pedido.link_assinatura ? (
+          <a href={pedido.link_assinatura} target="_blank" rel="noopener noreferrer" className="block">
+            <Button size="sm" variant="outline" className="w-full gap-2 rounded-xl border-cyan-200 text-cyan-700 hover:bg-cyan-50">
+              <ExternalLink className="w-3.5 h-3.5" /> Ver Link de Assinatura
             </Button>
-          )}
-        </>
+          </a>
+        ) : (
+          <Button
+            size="sm" variant="outline"
+            className="w-full gap-2 rounded-xl border-cyan-200 text-cyan-700 hover:bg-cyan-50"
+            onClick={() => setShowContrato(true)}
+            disabled={isLoading}
+          >
+            {contratoMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+            Enviar Contrato (ZapSign)
+          </Button>
+        )
       )}
 
-      {/* Ação de Ativação */}
+      {/* Ativar IXC */}
       {s === "assinado" && !pedido.sincronizado_ixc && (
         <Button
           size="sm"
@@ -145,30 +172,67 @@ export default function PedidoAcoes({ pedido, lead }) {
         </div>
       )}
 
-      {/* Modal Contrato */}
+      {/* Modal Contrato com Template */}
       <Dialog open={showContrato} onOpenChange={setShowContrato}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Enviar Contrato via ZapSign</DialogTitle>
-            <DialogDescription>O link de assinatura será enviado para o cliente por e-mail e WhatsApp.</DialogDescription>
+            <DialogDescription>Selecione um template e visualize o contrato preenchido antes de enviar.</DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>URL do PDF do Contrato (opcional)</Label>
-              <Input
-                placeholder="https://storage.exemplo.com/contrato.pdf"
-                value={templateUrl}
-                onChange={e => setTemplateUrl(e.target.value)}
-                className="rounded-xl"
-              />
-              <p className="text-xs text-muted-foreground">Deixe em branco para usar o template padrão da ZapSign.</p>
+            {/* Seleção de Template */}
+            <div>
+              <label className="text-sm font-medium block mb-2">Selecionar Template</label>
+              {templates.length === 0 ? (
+                <p className="text-sm text-muted-foreground bg-muted rounded-lg p-3">
+                  Nenhum template ativo. Crie templates em <strong>Templates de Contrato</strong>.
+                </p>
+              ) : (
+                <div className="grid gap-2">
+                  {templates.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTemplateSelecionado(t)}
+                      className={`w-full text-left p-3 rounded-lg border transition-all ${
+                        templateSelecionado?.id === t.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/40 hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{t.nome}</span>
+                        {templateSelecionado?.id === t.id && (
+                          <CheckCircle className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      {t.descricao && <p className="text-xs text-muted-foreground mt-0.5">{t.descricao}</p>}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Preview do contrato preenchido */}
+            {templateSelecionado && (
+              <div>
+                <label className="text-sm font-medium block mb-2">Preview com dados do cliente</label>
+                <TemplatePreview conteudo={templateSelecionado.conteudo} dadosReais={dadosContrato} />
+              </div>
+            )}
+
             <Button
               onClick={() => contratoMutation.mutate()}
-              disabled={contratoMutation.isPending}
+              disabled={contratoMutation.isPending || !templateSelecionado}
               className="w-full rounded-xl"
             >
-              {contratoMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</> : "Gerar e Enviar Contrato"}
+              {contratoMutation.isPending
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>
+                : templateSelecionado
+                  ? `Gerar e Enviar — ${templateSelecionado.nome}`
+                  : "Selecione um template para continuar"
+              }
             </Button>
           </div>
         </DialogContent>
