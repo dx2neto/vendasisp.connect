@@ -162,6 +162,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Notifica vendedor se pedido foi criado e crédito aprovado
+    if (pedidoCriado && resultado === 'aprovado') {
+      try {
+        await base44.functions.invoke('notificarNovoPedido', { pedido_id: pedidoCriado.id });
+      } catch (notifError) {
+        console.error('Erro ao notificar vendedor:', notifError);
+      }
+    }
+
     return Response.json({ 
       analise, 
       resultado, 
