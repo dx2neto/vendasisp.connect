@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, ChevronRight } from "lucide-react";
+import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 
 const STATUS_LABELS = {
   novo: "Novo", analise_credito: "Crédito", viabilidade: "Viabilidade",
@@ -21,6 +23,7 @@ const STATUS_COLORS = {
 
 export default function Pedidos() {
   const [showForm, setShowForm] = useState(false);
+  const [selectedPedido, setSelectedPedido] = useState(null);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
 
@@ -28,12 +31,10 @@ export default function Pedidos() {
     queryKey: ["pedidos"],
     queryFn: () => base44.entities.Pedido.list("-created_date", 200),
   });
-
   const { data: leads = [] } = useQuery({
     queryKey: ["leads"],
     queryFn: () => base44.entities.Lead.list("-created_date", 500),
   });
-
   const { data: planos = [] } = useQuery({
     queryKey: ["planos"],
     queryFn: () => base44.entities.Plano.list(),
@@ -43,10 +44,7 @@ export default function Pedidos() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Pedido.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pedidos"] });
-      setShowForm(false);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["pedidos"] }); setShowForm(false); },
   });
 
   const handleCreate = () => {
@@ -54,20 +52,20 @@ export default function Pedidos() {
     const plano = planos.find(p => p.id === form.plano_id);
     if (!lead) return;
     createMutation.mutate({
-      lead_id: lead.id,
-      lead_nome: lead.nome,
-      lead_cpf: lead.cnpj_cpf,
-      plano_id: plano?.id || "",
-      plano_nome: plano?.nome || "",
-      valor: plano?.preco_mensal || 0,
-      canal_origem: lead.canal_origem,
-      status: "novo",
+      lead_id: lead.id, lead_nome: lead.nome, lead_cpf: lead.cnpj_cpf,
+      plano_id: plano?.id || "", plano_nome: plano?.nome || "",
+      valor: plano?.preco_mensal || 0, canal_origem: lead.canal_origem, status: "novo",
     });
   };
 
   const filtered = pedidos.filter(p =>
     !search || p.lead_nome?.toLowerCase().includes(search.toLowerCase()) || p.lead_cpf?.includes(search)
   );
+
+  // Lead do pedido selecionado
+  const selectedLead = selectedPedido?.lead_id
+    ? leads.find(l => l.id === selectedPedido.lead_id)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -96,16 +94,17 @@ export default function Pedidos() {
                 <th className="text-right py-3 px-4 font-medium text-muted-foreground">Valor</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Vendedor</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">IXC</th>
+                <th className="text-center py-3 px-4 font-medium text-muted-foreground">IXC</th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={7} className="py-12 text-center text-muted-foreground">Carregando...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Nenhum pedido</td></tr>
+                <tr><td colSpan={7} className="py-12 text-center text-muted-foreground">Nenhum pedido</td></tr>
               ) : filtered.map(p => (
-                <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedPedido(p)}>
                   <td className="py-3 px-4">
                     <p className="font-medium">{p.lead_nome}</p>
                     <p className="text-xs text-muted-foreground font-mono">{p.lead_cpf}</p>
@@ -120,12 +119,13 @@ export default function Pedidos() {
                     </Badge>
                   </td>
                   <td className="py-3 px-4 text-muted-foreground text-xs">{p.vendedor_nome || "—"}</td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-center">
                     {p.sincronizado_ixc ? (
                       <Badge className="text-[10px] bg-emerald-50 text-emerald-600" variant="outline">Sync</Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                  </td>
+                  <td className="py-3 px-4">
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </td>
                 </tr>
               ))}
@@ -134,6 +134,42 @@ export default function Pedidos() {
         </div>
       </div>
 
+      {/* Sheet lateral com ações do pedido */}
+      <Sheet open={!!selectedPedido} onOpenChange={() => setSelectedPedido(null)}>
+        <SheetContent className="w-[420px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Pedido — {selectedPedido?.lead_nome}</SheetTitle>
+          </SheetHeader>
+          {selectedPedido && (
+            <div className="mt-6 space-y-5">
+              {/* Resumo */}
+              <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">CPF/CNPJ</span><span className="font-mono">{selectedPedido.lead_cpf || "—"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Plano</span><span>{selectedPedido.plano_nome || "—"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Valor</span><span className="font-semibold">R$ {(selectedPedido.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Vendedor</span><span>{selectedPedido.vendedor_nome || "—"}</span></div>
+                {selectedPedido.revendedor_nome && <div className="flex justify-between"><span className="text-muted-foreground">Revendedor</span><span>{selectedPedido.revendedor_nome}</span></div>}
+                <div className="flex justify-between items-center"><span className="text-muted-foreground">Status</span>
+                  <Badge variant="outline" className={`text-xs ${STATUS_COLORS[selectedPedido.status] || ""}`}>
+                    {STATUS_LABELS[selectedPedido.status] || selectedPedido.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Ações integração */}
+              <div>
+                <p className="text-sm font-semibold mb-3">Ações de Integração</p>
+                <PedidoAcoes
+                  pedido={selectedPedido}
+                  lead={selectedLead}
+                />
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Modal novo pedido */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Novo Pedido</DialogTitle></DialogHeader>
