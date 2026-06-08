@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { User, DollarSign, Calendar, CheckCircle2, Zap, Sparkles } from "lucide-react";
+import { User, CheckCircle2, Zap, Sparkles, Flame, Clock, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { differenceInHours, differenceInDays } from "date-fns";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,6 +38,8 @@ export default function Esteira() {
   const queryClient = useQueryClient();
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [pedidosNovos, setPedidosNovos] = useState(new Set());
+  const [filtroPrioridade, setFiltroPrioridade] = useState(null); // "quente" | "morno" | "frio"
+  const [filtroEspera, setFiltroEspera] = useState(null); // "hoje" | "2dias" | "semana" | "mais"
 
   const { data: pedidos = [] } = useQuery({
     queryKey: ["pedidos"],
@@ -86,6 +89,49 @@ export default function Esteira() {
 
   const totalAtivado = pedidos.filter(p => p.status === "ativado").reduce((s, p) => s + (p.valor || 0), 0);
 
+  // Classificação de prioridade baseada no valor
+  const getPrioridade = (pedido) => {
+    if ((pedido.valor || 0) >= 200) return "quente";
+    if ((pedido.valor || 0) >= 100) return "morno";
+    return "frio";
+  };
+
+  // Tempo de espera em horas
+  const getHorasEspera = (pedido) => {
+    if (!pedido.created_date) return 0;
+    return differenceInHours(new Date(), new Date(pedido.created_date));
+  };
+
+  const getFiltroEsperaMatch = (pedido) => {
+    const horas = getHorasEspera(pedido);
+    if (filtroEspera === "hoje") return horas <= 24;
+    if (filtroEspera === "2dias") return horas > 24 && horas <= 48;
+    if (filtroEspera === "semana") return horas > 48 && horas <= 168;
+    if (filtroEspera === "mais") return horas > 168;
+    return true;
+  };
+
+  const filtrarPedidos = (lista) => lista.filter(p => {
+    const okPrioridade = !filtroPrioridade || getPrioridade(p) === filtroPrioridade;
+    const okEspera = getFiltroEsperaMatch(p);
+    return okPrioridade && okEspera;
+  });
+
+  const PRIORIDADES = [
+    { id: "quente", label: "Quente", icon: Flame, cor: "text-red-500 border-red-300 bg-red-50 hover:bg-red-100" },
+    { id: "morno", label: "Morno", icon: Flame, cor: "text-amber-500 border-amber-300 bg-amber-50 hover:bg-amber-100" },
+    { id: "frio", label: "Frio", icon: Flame, cor: "text-blue-400 border-blue-200 bg-blue-50 hover:bg-blue-100" },
+  ];
+
+  const ESPERAS = [
+    { id: "hoje", label: "Hoje", cor: "text-emerald-600 border-emerald-300 bg-emerald-50 hover:bg-emerald-100" },
+    { id: "2dias", label: "+24h", cor: "text-amber-500 border-amber-300 bg-amber-50 hover:bg-amber-100" },
+    { id: "semana", label: "+2 dias", cor: "text-orange-500 border-orange-300 bg-orange-50 hover:bg-orange-100" },
+    { id: "mais", label: "+1 semana", cor: "text-red-500 border-red-300 bg-red-50 hover:bg-red-100" },
+  ];
+
+  const temFiltroAtivo = filtroPrioridade || filtroEspera;
+
   return (
     <div className="space-y-5 h-full flex flex-col">
       {/* Header */}
@@ -106,13 +152,68 @@ export default function Esteira() {
         </div>
       </div>
 
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-3 flex-shrink-0 bg-muted/30 border border-border rounded-xl px-4 py-3">
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium mr-1">
+          <Filter className="w-3.5 h-3.5" />
+          Filtros:
+        </div>
+
+        {/* Prioridade */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">Prioridade:</span>
+          {PRIORIDADES.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setFiltroPrioridade(filtroPrioridade === p.id ? null : p.id)}
+              className={cn(
+                "text-xs font-medium px-2.5 py-1 rounded-full border transition-all flex items-center gap-1",
+                filtroPrioridade === p.id ? p.cor + " ring-2 ring-offset-1 ring-current/30" : "border-border bg-background text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <p.icon className="w-3 h-3" />
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="w-px h-4 bg-border" />
+
+        {/* Tempo de espera */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />Espera:</span>
+          {ESPERAS.map(e => (
+            <button
+              key={e.id}
+              onClick={() => setFiltroEspera(filtroEspera === e.id ? null : e.id)}
+              className={cn(
+                "text-xs font-medium px-2.5 py-1 rounded-full border transition-all",
+                filtroEspera === e.id ? e.cor + " ring-2 ring-offset-1 ring-current/30" : "border-border bg-background text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {e.label}
+            </button>
+          ))}
+        </div>
+
+        {temFiltroAtivo && (
+          <button
+            onClick={() => { setFiltroPrioridade(null); setFiltroEspera(null); }}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+          >
+            <X className="w-3 h-3" />
+            Limpar filtros
+          </button>
+        )}
+      </div>
+
       {/* Board */}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-3 overflow-x-auto pb-4 flex-1">
           {COLUMNS.map(col => {
-            const colPedidos = pedidos.filter(p =>
+            const colPedidos = filtrarPedidos(pedidos.filter(p =>
               p.status === col.id || (col.id === "contrato_pendente" && p.status === "assinado")
-            );
+            ));
             const totalValor = colPedidos.reduce((s, p) => s + (p.valor || 0), 0);
 
             return (
@@ -195,11 +296,26 @@ export default function Esteira() {
 
                               {/* Data + Badges */}
                               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                                {pedido.created_date && (
-                                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
-                                    {format(new Date(pedido.created_date), "dd/MM", { locale: ptBR })}
-                                  </span>
-                                )}
+                                {pedido.created_date && (() => {
+                                  const horas = getHorasEspera(pedido);
+                                  const dias = Math.floor(horas / 24);
+                                  const label = horas < 24 ? "Hoje" : dias < 7 ? `${dias}d` : `${Math.floor(dias/7)}sem`;
+                                  const urgente = horas > 168;
+                                  return (
+                                    <span className={cn(
+                                      "text-[10px] px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
+                                      urgente ? "bg-red-50 text-red-500 font-semibold" : "text-muted-foreground bg-muted"
+                                    )}>
+                                      <Clock className="w-2.5 h-2.5" />{label}
+                                    </span>
+                                  );
+                                })()}
+                                {(() => {
+                                  const p = getPrioridade(pedido);
+                                  if (p === "quente") return <Badge className="text-[10px] py-0 px-1.5 bg-red-50 text-red-500 border-red-200 h-4 gap-0.5" variant="outline"><Flame className="w-2.5 h-2.5" />Quente</Badge>;
+                                  if (p === "morno") return <Badge className="text-[10px] py-0 px-1.5 bg-amber-50 text-amber-500 border-amber-200 h-4 gap-0.5" variant="outline"><Flame className="w-2.5 h-2.5" />Morno</Badge>;
+                                  return null;
+                                })()}
                                 {pedido.canal_origem === "api_credito" && (
                                   <Badge className="text-[10px] py-0 px-1.5 bg-blue-50 text-blue-600 border-blue-200 h-4" variant="outline">
                                     Crédito
