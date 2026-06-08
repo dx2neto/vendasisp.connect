@@ -14,6 +14,7 @@ import {
   TrendingUp, DollarSign, Target, ShoppingCart, CheckCircle2, Clock,
   Plus, Trophy, Zap, Star, AlertCircle, ChevronRight, X
 } from "lucide-react";
+import PainelComissoes from "@/components/vendedor/PainelComissoes";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, subMonths, isWithinInterval, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -325,7 +326,7 @@ export default function VendedorDashboard() {
         </div>
       </div>
 
-      {/* Tabs: Meus Pedidos | Comissões */}
+      {/* Tabs: Meus Pedidos | Comissões Detalhadas */}
       <Tabs defaultValue="pedidos" className="space-y-4">
         <TabsList className="rounded-xl">
           <TabsTrigger value="pedidos" className="rounded-lg gap-1.5">
@@ -371,38 +372,12 @@ export default function VendedorDashboard() {
         </TabsContent>
 
         <TabsContent value="comissoes" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-xs text-amber-600 font-medium uppercase tracking-wide">A Receber</p>
-              <p className="text-2xl font-bold text-amber-700 mt-1">{fmt(comissaoPendente)}</p>
-              <p className="text-xs text-amber-600 mt-0.5">{minhasComissoes.filter(c => c.status === "a_receber").length} registros pendentes</p>
-            </div>
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-              <p className="text-xs text-emerald-600 font-medium uppercase tracking-wide">Já Recebido</p>
-              <p className="text-2xl font-bold text-emerald-700 mt-1">{fmt(comissaoPaga)}</p>
-              <p className="text-xs text-emerald-600 mt-0.5">{minhasComissoes.filter(c => c.status === "pago").length} pagamentos</p>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="divide-y divide-border/50">
-              {minhasComissoes.length === 0 ? (
-                <div className="py-10 text-center text-muted-foreground text-sm">Nenhuma comissão registrada</div>
-              ) : minhasComissoes.slice(0, 20).map(c => (
-                <div key={c.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/20 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{c.lead_nome || "—"}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{c.plano_nome || "—"} • {c.percentual}%</p>
-                  </div>
-                  <div className="flex items-center gap-3 ml-3">
-                    <Badge variant="outline" className={cn("text-xs", c.status === "pago" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-amber-50 text-amber-600 border-amber-200")}>
-                      {c.status === "pago" ? "Pago" : "Pendente"}
-                    </Badge>
-                    <span className={cn("text-sm font-bold flex-shrink-0", c.status === "pago" ? "text-emerald-600" : "text-amber-600")}>{fmt(c.valor)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <PainelComissoes
+            comissoes={minhasComissoes}
+            pedidos={meusPedidos}
+            metas={metas}
+            me={me}
+          />
         </TabsContent>
       </Tabs>
 
