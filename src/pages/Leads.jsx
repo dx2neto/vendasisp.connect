@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/lib/usePermissions";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ export default function Leads() {
   const [editingLead, setEditingLead] = useState(null);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { filtrarLeads } = usePermissions();
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ["leads"],
@@ -64,7 +66,8 @@ export default function Leads() {
     },
   });
 
-  const filtered = leads.filter(l =>
+  const leadsFiltradosPorPapel = filtrarLeads(leads);
+  const filtered = leadsFiltradosPorPapel.filter(l =>
     !search ||
     l.nome?.toLowerCase().includes(search.toLowerCase()) ||
     l.cnpj_cpf?.includes(search) ||

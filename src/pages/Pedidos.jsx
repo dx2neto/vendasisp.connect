@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/lib/usePermissions";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ export default function Pedidos() {
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { filtrarPedidos } = usePermissions();
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["pedidos"],
@@ -58,7 +60,8 @@ export default function Pedidos() {
     });
   };
 
-  const filtered = pedidos.filter(p =>
+  const pedidosFiltradosPorPapel = filtrarPedidos(pedidos);
+  const filtered = pedidosFiltradosPorPapel.filter(p =>
     !search || p.lead_nome?.toLowerCase().includes(search.toLowerCase()) || p.lead_cpf?.includes(search)
   );
 

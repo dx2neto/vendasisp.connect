@@ -35,6 +35,7 @@ import Roleta from "@/pages/Roleta";
 import ConfigRoleta from "@/pages/ConfigRoleta";
 import SiteInstitucional from "@/pages/SiteInstitucional";
 import BoletoFacil from "@/pages/BoletoFacil";
+import GestaoUsuarios from "@/pages/GestaoUsuarios";
 import FinanceiroDashboard from "@/pages/FinanceiroDashboard";
 import Planometro from "@/pages/Planometro";
 
@@ -88,6 +89,7 @@ const AuthenticatedApp = () => {
           <Route path="/templates-contrato" element={<TemplatesContrato />} />
           <Route path="/roleta-config" element={<ConfigRoleta />} />
           <Route path="/financeiro" element={<FinanceiroDashboard />} />
+          <Route path="/usuarios" element={<GestaoUsuarios />} />
         </Route>
       </Route>
 
