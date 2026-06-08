@@ -19,7 +19,8 @@ import {
   Gift,
   Globe,
   Receipt,
-  Gauge
+  Gauge,
+  Landmark
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -33,6 +34,7 @@ const menuItems = [
   { label: "Crédito", icon: CreditCard, path: "/credito" },
   { label: "Planos", icon: Package, path: "/planos" },
   { label: "Analytics", icon: BarChart3, path: "/analytics" },
+  { label: "Financeiro", icon: Landmark, path: "/financeiro" },
   { label: "Comissões", icon: DollarSign, path: "/comissoes" },
   { label: "Contratos", icon: FileText, path: "/contratos" },
   { label: "Revendedor", icon: Briefcase, path: "/revendedor" },

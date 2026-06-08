@@ -35,6 +35,7 @@ import Roleta from "@/pages/Roleta";
 import ConfigRoleta from "@/pages/ConfigRoleta";
 import SiteInstitucional from "@/pages/SiteInstitucional";
 import BoletoFacil from "@/pages/BoletoFacil";
+import FinanceiroDashboard from "@/pages/FinanceiroDashboard";
 import Planometro from "@/pages/Planometro";
 
 const AuthenticatedApp = () => {
@@ -86,6 +87,7 @@ const AuthenticatedApp = () => {
           <Route path="/desempenho" element={<DesempenhoMensal />} />
           <Route path="/templates-contrato" element={<TemplatesContrato />} />
           <Route path="/roleta-config" element={<ConfigRoleta />} />
+          <Route path="/financeiro" element={<FinanceiroDashboard />} />
         </Route>
       </Route>
 
