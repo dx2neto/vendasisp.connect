@@ -4,7 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { User, CheckCircle2, Zap, Sparkles, Flame, Clock, Filter, X } from "lucide-react";
+import { User, CheckCircle2, Zap, Sparkles, Flame, Clock, Filter, X, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { differenceInHours, differenceInDays } from "date-fns";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
@@ -89,6 +90,50 @@ export default function Esteira() {
 
   const totalAtivado = pedidos.filter(p => p.status === "ativado").reduce((s, p) => s + (p.valor || 0), 0);
 
+  const exportarPlanilha = () => {
+    const cabecalho = [
+      "Cliente", "CPF/CNPJ", "Plano", "Valor (R$)", "Status",
+      "Vendedor", "Revendedor", "Canal Origem", "Sincronizado IXC",
+      "Data Criação", "Data Crédito", "Data Viabilidade", "Data Contrato", "Data Ativação",
+      "ID Cliente IXC", "ID Contrato IXC", "ID OS IXC", "Observação"
+    ];
+
+    const fmt = (v) => (v ? `"${String(v).replace(/"/g, '""')}"` : '""');
+    const fmtData = (d) => d ? format(new Date(d), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "";
+
+    const linhas = pedidos.map(p => [
+      fmt(p.lead_nome),
+      fmt(p.lead_cpf),
+      fmt(p.plano_nome),
+      (p.valor || 0).toFixed(2).replace(".", ","),
+      fmt(STATUS_LABELS[p.status] || p.status),
+      fmt(p.vendedor_nome),
+      fmt(p.revendedor_nome),
+      fmt(p.canal_origem),
+      p.sincronizado_ixc ? "Sim" : "Não",
+      fmt(fmtData(p.created_date)),
+      fmt(fmtData(p.data_credito)),
+      fmt(fmtData(p.data_viabilidade)),
+      fmt(fmtData(p.data_contrato)),
+      fmt(fmtData(p.data_ativacao)),
+      fmt(p.id_cliente_ixc),
+      fmt(p.id_contrato_ixc),
+      fmt(p.id_os_ixc),
+      fmt(p.observacao),
+    ].join(";"));
+
+    const bom = "\uFEFF"; // BOM para Excel reconhecer UTF-8
+    const csv = bom + [cabecalho.join(";"), ...linhas].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `esteira_vendas_${format(new Date(), "yyyy-MM-dd", { locale: ptBR })}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${pedidos.length} pedidos exportados com sucesso!`);
+  };
+
   // Classificação de prioridade baseada no valor
   const getPrioridade = (pedido) => {
     if ((pedido.valor || 0) >= 200) return "quente";
@@ -149,6 +194,16 @@ export default function Esteira() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
             {pedidos.filter(p => !["ativado", "recusado"].includes(p.status)).length} ativos
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportarPlanilha}
+            className="gap-1.5 rounded-xl h-9"
+            title="Exportar dados para planilha Excel/CSV"
+          >
+            <Download className="w-4 h-4" />
+            Exportar
+          </Button>
         </div>
       </div>
 
