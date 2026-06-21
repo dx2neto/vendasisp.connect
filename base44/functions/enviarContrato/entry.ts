@@ -158,11 +158,42 @@ Deno.serve(async (req) => {
       data_contrato: new Date().toISOString(),
     });
 
+    // Envia link do contrato via WhatsApp pelo Evolution Go
+    let whatsappEnviado = false;
+    if (signerPhone && linkAssinatura) {
+      const EVOLUTION_URL = Deno.env.get('EVOLUTION_URL');
+      const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
+      const EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID');
+
+      if (EVOLUTION_URL && EVOLUTION_API_KEY) {
+        const mensagemWA = `Olá, ${signerName}! 👋\n\nSeu contrato está pronto para assinatura digital.\n\n✍️ *Assine agora clicando no link abaixo:*\n${linkAssinatura}\n\n_Este link é exclusivo para você. Qualquer dúvida, entre em contato conosco._`;
+
+        const waResp = await fetch(`${EVOLUTION_URL}/send/text`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': EVOLUTION_API_KEY,
+            'instanceId': EVOLUTION_INSTANCE_ID || '',
+          },
+          body: JSON.stringify({ number: signerPhone, text: mensagemWA }),
+        });
+
+        whatsappEnviado = waResp.ok;
+        if (!waResp.ok) {
+          const err = await waResp.text().catch(() => '');
+          console.warn('Aviso: falha ao enviar WhatsApp:', err);
+        } else {
+          console.log(`WhatsApp enviado para ${signerPhone}`);
+        }
+      }
+    }
+
     return Response.json({
       success: true,
       contrato,
       link_assinatura: linkAssinatura,
       id_zapsign: idZapsign,
+      whatsapp_enviado: whatsappEnviado,
     });
   } catch (error) {
     console.error('Erro ao enviar contrato:', error.message);
