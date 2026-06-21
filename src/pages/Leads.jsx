@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Phone, Mail, FileText } from "lucide-react";
+import { Plus, Search, Phone, Mail, FileText, Download, Loader2 } from "lucide-react";
 import LeadForm from "@/components/leads/LeadForm";
 import HistoricoNotas from "@/components/leads/HistoricoNotas";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -36,13 +36,50 @@ const CANAL_LABELS = {
   site: "Site",
 };
 
+
 export default function Leads() {
   const [showForm, setShowForm] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [editingLead, setEditingLead] = useState(null);
   const [search, setSearch] = useState("");
+  const [downloadingId, setDownloadingId] = useState(null);
   const queryClient = useQueryClient();
   const { filtrarLeads } = usePermissions();
+
+  const handleDownloadPdf = async (lead) => {
+    setDownloadingId(lead.id);
+    try {
+      // Usa o cliente base44 para obter a URL da função e o token
+      const fnUrl = base44.functions.getUrl?.('gerarPdfCadastro') || `/api/functions/gerarPdfCadastro`;
+      const token = base44.auth.getToken?.() || '';
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ lead_id: lead.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Erro ao gerar PDF');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cadastro_${(lead.nome || 'cliente').replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Erro ao gerar PDF: ' + e.message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ["leads"],
@@ -157,14 +194,28 @@ export default function Leads() {
                   </td>
                   <td className="py-3 px-4 text-muted-foreground text-xs">{lead.cidade_nome}</td>
                   <td className="py-3 px-4">
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="gap-2 rounded-lg h-8"
+                        className="gap-1.5 rounded-lg h-8"
+                        title="Ver detalhes"
                         onClick={() => setSelectedLead(lead)}
                       >
                         <FileText className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 rounded-lg h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="Baixar PDF de Cadastro"
+                        disabled={downloadingId === lead.id}
+                        onClick={() => handleDownloadPdf(lead)}
+                      >
+                        {downloadingId === lead.id
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <Download className="w-4 h-4" />
+                        }
                       </Button>
                       <Button
                         variant="ghost"
@@ -199,11 +250,25 @@ export default function Leads() {
        <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}>
          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
            <DialogHeader>
-             <DialogTitle>Detalhes do Lead - {selectedLead?.nome}</DialogTitle>
-           </DialogHeader>
-           {selectedLead && (
-             <Tabs defaultValue="notas" className="w-full">
-               <TabsList className="grid w-full grid-cols-2 rounded-lg">
+              <div className="flex items-center justify-between pr-6">
+                <DialogTitle>Detalhes do Lead — {selectedLead?.nome}</DialogTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50"
+                  disabled={downloadingId === selectedLead?.id}
+                  onClick={() => selectedLead && handleDownloadPdf(selectedLead)}
+                >
+                  {downloadingId === selectedLead?.id
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Gerando...</>
+                    : <><Download className="w-3.5 h-3.5" /> PDF Cadastro</>
+                  }
+                </Button>
+              </div>
+            </DialogHeader>
+            {selectedLead && (
+              <Tabs defaultValue="notas" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 rounded-lg">
                  <TabsTrigger value="notas" className="rounded-md">Histórico de Notas</TabsTrigger>
                  <TabsTrigger value="info" className="rounded-md">Informações</TabsTrigger>
                </TabsList>
