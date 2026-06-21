@@ -1,0 +1,52 @@
+{
+  "name": "Conversa",
+  "type": "object",
+  "properties": {
+    "contato_id": {
+      "type": "string",
+      "description": "ID do Contato"
+    },
+    "contato_nome": {
+      "type": "string"
+    },
+    "contato_telefone": {
+      "type": "string"
+    },
+    "setor_id": {
+      "type": "string"
+    },
+    "setor_nome": {
+      "type": "string"
+    },
+    "setor_cor": {
+      "type": "string"
+    },
+    "atendente_id": {
+      "type": "string"
+    },
+    "atendente_nome": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aguardando",
+        "em_atendimento",
+        "resolvida"
+      ],
+      "default": "aguardando"
+    },
+    "nao_lidas": {
+      "type": "number",
+      "default": 0
+    },
+    "ultima_msg": {
+      "type": "string"
+    },
+    "ultima_em": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": []
+}

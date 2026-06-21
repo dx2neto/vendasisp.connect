@@ -1,0 +1,23 @@
+{
+  "name": "Contato",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string"
+    },
+    "telefone": {
+      "type": "string",
+      "description": "Somente d\u00edgitos com DDI, ex: 5534999990000"
+    },
+    "push_name": {
+      "type": "string"
+    },
+    "ixc_id": {
+      "type": "string",
+      "description": "ID do cliente no IXC"
+    }
+  },
+  "required": [
+    "telefone"
+  ]
+}

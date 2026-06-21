@@ -1,0 +1,56 @@
+{
+  "name": "Mensagem",
+  "type": "object",
+  "properties": {
+    "conversa_id": {
+      "type": "string",
+      "description": "ID da Conversa"
+    },
+    "direcao": {
+      "type": "string",
+      "enum": [
+        "in",
+        "out"
+      ],
+      "description": "in=cliente, out=atendente"
+    },
+    "autor": {
+      "type": "string",
+      "description": "Nome do atendente (vazio se do cliente)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "texto",
+        "imagem",
+        "audio",
+        "video",
+        "documento",
+        "localizacao"
+      ],
+      "default": "texto"
+    },
+    "conteudo": {
+      "type": "string"
+    },
+    "wa_id": {
+      "type": "string",
+      "description": "ID da mensagem no WhatsApp"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "enviando",
+        "enviado",
+        "entregue",
+        "lido",
+        "erro"
+      ],
+      "default": "enviado"
+    }
+  },
+  "required": [
+    "conversa_id",
+    "direcao"
+  ]
+}

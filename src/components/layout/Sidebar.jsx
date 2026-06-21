@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingCart, Kanban, CreditCard, FileText,
   Settings, Briefcase, DollarSign, Package, LogOut, ChevronLeft, ChevronRight,
-  Zap, Plug, BarChart3, Gift, Globe, Receipt, Gauge, Landmark, UserCog
+  Zap, Plug, BarChart3, Gift, Globe, Receipt, Gauge, Landmark, UserCog, MessageSquare
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -29,6 +29,8 @@ const menuItems = [
   { label: "Site",          icon: Globe,             path: "/site",          external: true, roles: ["admin"] },
   { label: "2ª Via / Boleto",icon: Receipt,          path: "/boleto",        external: true, roles: ["admin","gerente","vendedor","revendedor"] },
   { label: "Planômetro",    icon: Gauge,             path: "/planometro",    external: true, roles: ["admin","gerente","vendedor"] },
+  { label: "Atendimento",   icon: MessageSquare,     path: "/atendimento",   roles: ["admin","gerente","vendedor"] },
+  { label: "Config. Atend.",icon: Settings,          path: "/config-atendimento", roles: ["admin"] },
   { label: "Integrações",   icon: Plug,              path: "/integracoes",   roles: ["admin"] },
   { label: "Configurações", icon: Settings,          path: "/configuracoes", roles: ["admin"] },
 ];

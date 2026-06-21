@@ -1,0 +1,18 @@
+{
+  "name": "RespostaRapida",
+  "type": "object",
+  "properties": {
+    "atalho": {
+      "type": "string",
+      "description": "Ex: /ola"
+    },
+    "texto": {
+      "type": "string",
+      "description": "Texto da resposta"
+    }
+  },
+  "required": [
+    "atalho",
+    "texto"
+  ]
+}

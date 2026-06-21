@@ -39,6 +39,8 @@ import GestaoUsuarios from "@/pages/GestaoUsuarios";
 import FinanceiroDashboard from "@/pages/FinanceiroDashboard";
 import Planometro from "@/pages/Planometro";
 import PainelRevendedor from "@/pages/PainelRevendedor";
+import Atendimento from "@/pages/Atendimento";
+import ConfigAtendimento from "@/pages/ConfigAtendimento";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -92,6 +94,8 @@ const AuthenticatedApp = () => {
           <Route path="/financeiro" element={<FinanceiroDashboard />} />
           <Route path="/usuarios" element={<GestaoUsuarios />} />
           <Route path="/painel-revendedor" element={<PainelRevendedor />} />
+          <Route path="/atendimento" element={<Atendimento />} />
+          <Route path="/config-atendimento" element={<ConfigAtendimento />} />
         </Route>
       </Route>
 
