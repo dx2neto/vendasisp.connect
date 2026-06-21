@@ -82,6 +82,87 @@ Deno.serve(async (req) => {
       resultados.planos_atualizados = updates;
     }
 
+    // ── Sincronizar modelos de contrato do IXC → TemplateContrato ─────────
+    if (tipo === 'sync_modelos') {
+      // Busca modelos de contrato no IXC via endpoint correto
+      const rModelos = await ixcRequest('cliente_contrato_modelo', {
+        qtype: 'id', query: '', oper: '>', page: '1', rp: '500',
+        sortname: 'id', sortorder: 'asc',
+      });
+
+      const rawModelos = rModelos.data;
+      const modelosIXC = Array.isArray(rawModelos)
+        ? rawModelos
+        : Array.isArray(rawModelos?.registros) ? rawModelos.registros
+        : Array.isArray(rawModelos?.data) ? rawModelos.data
+        : [];
+
+      console.log(`Encontrados ${modelosIXC.length} modelos de contrato no IXC`);
+      resultados.endpoint_utilizado = 'cliente_contrato_modelo';
+      resultados.modelos_ixc_encontrados = modelosIXC.length;
+
+      const templatesCRM = await base44.asServiceRole.entities.TemplateContrato.list();
+      const criados = [];
+      const atualizados = [];
+
+      for (const modelo of modelosIXC) {
+        if (!modelo.id || !modelo.nome) continue;
+
+        // Converte o conteúdo HTML/texto do IXC para variáveis padrão CRM
+        // O IXC usa {campo} — convertemos para {{campo}}
+        const conteudoRaw = modelo.conteudo || modelo.texto || modelo.descricao || `Contrato: ${modelo.nome}`;
+
+        // Remove tags HTML e normaliza
+        const conteudoTexto = conteudoRaw
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .trim();
+
+        // Converte variáveis: {campo} → {{campo}}
+        const conteudo = conteudoTexto
+          .replace(/\{([a-zA-Z_0-9]+)\}/g, '{{$1}}')
+          .replace(/\[([a-zA-Z_\s]+)\]/g, (m, v) => `{{${v.trim().toLowerCase().replace(/\s+/g, '_')}}}`)
+          .slice(0, 8000); // Limita a 8KB — conteúdos maiores devem ser editados no CRM após importação
+
+        // Extrai variáveis
+        const variaveis = [...new Set(
+          (conteudo.match(/\{\{(\w+)\}\}/g) || []).map(v => v.replace(/\{\{|\}\}/g, ''))
+        )];
+
+        // Verifica se já existe template vinculado a este modelo IXC
+        const existente = templatesCRM.find(t => String(t.id_modelo_ixc) === String(modelo.id));
+
+        if (existente) {
+          // Atualiza conteúdo se existir
+          await base44.asServiceRole.entities.TemplateContrato.update(existente.id, {
+            conteudo,
+            variaveis_obrigatorias: variaveis,
+            id_modelo_ixc: String(modelo.id),
+          });
+          atualizados.push({ nome: existente.nome, id_ixc: modelo.id });
+        } else {
+          // Cria novo template importado do IXC
+          await base44.asServiceRole.entities.TemplateContrato.create({
+            nome: modelo.nome,
+            descricao: `Importado do IXC — ID #${modelo.id}`,
+            conteudo,
+            variaveis_obrigatorias: variaveis,
+            ativo: true,
+            id_modelo_ixc: String(modelo.id),
+          });
+          criados.push({ nome: modelo.nome, id_ixc: modelo.id });
+        }
+      }
+
+      resultados.modelos_criados = criados;
+      resultados.modelos_atualizados = atualizados;
+    }
+
     return Response.json({ success: true, ...resultados });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Edit2, Trash2, Eye, Copy, ArrowLeft, Check } from "lucide-react";
+import { Plus, Edit2, Trash2, Eye, Copy, ArrowLeft, Check, RefreshCw, Link2 } from "lucide-react";
+import { toast } from "sonner";
 import TemplateEditor from "@/components/templates/TemplateEditor";
 import TemplatePreview from "@/components/templates/TemplatePreview";
 
-function ListaTemplates({ templates, onNovo, onEditar, onDuplicar, onDeletar, onPreview }) {
+function ListaTemplates({ templates, onNovo, onEditar, onDuplicar, onDeletar, onPreview, onSincronizarIXC, isSincronizando }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -17,9 +18,21 @@ function ListaTemplates({ templates, onNovo, onEditar, onDuplicar, onDeletar, on
           <h1 className="text-2xl font-bold tracking-tight">Templates de Contrato</h1>
           <p className="text-muted-foreground mt-1">Crie modelos com variáveis preenchidas automaticamente</p>
         </div>
-        <Button onClick={onNovo} className="gap-2 rounded-xl w-full sm:w-auto">
-          <Plus className="w-4 h-4" /> Novo Template
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={onSincronizarIXC}
+            disabled={isSincronizando}
+            className="gap-2 rounded-xl"
+            title="Importa modelos de contrato cadastrados no IXC"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSincronizando ? 'animate-spin' : ''}`} />
+            {isSincronizando ? 'Sincronizando...' : 'Sincronizar IXC'}
+          </Button>
+          <Button onClick={onNovo} className="gap-2 rounded-xl">
+            <Plus className="w-4 h-4" /> Novo Template
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -41,6 +54,11 @@ function ListaTemplates({ templates, onNovo, onEditar, onDuplicar, onDeletar, on
                       <Badge variant={template.ativo ? "default" : "secondary"} className="text-xs rounded-md">
                         {template.ativo ? "Ativo" : "Inativo"}
                       </Badge>
+                      {template.id_modelo_ixc && (
+                        <Badge variant="outline" className="text-xs rounded-md border-blue-200 text-blue-600 bg-blue-50 gap-1">
+                          <Link2 className="w-3 h-3" /> IXC #{template.id_modelo_ixc}
+                        </Badge>
+                      )}
                     </div>
                     {template.descricao && (
                       <p className="text-sm text-muted-foreground mt-1">{template.descricao}</p>
@@ -198,6 +216,23 @@ export default function TemplatesContrato() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["templates-contrato"] }),
   });
 
+  const sincronizarIXCMutation = useMutation({
+    mutationFn: () => base44.functions.invoke("sincronizarIXC", { tipo: "sync_modelos" }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["templates-contrato"] });
+      const d = res.data;
+      const criados = d?.modelos_criados?.length || 0;
+      const atualizados = d?.modelos_atualizados?.length || 0;
+      const total = d?.modelos_ixc_encontrados || 0;
+      if (total === 0) {
+        toast.info("Nenhum modelo de contrato encontrado no IXC. Verifique se a tabela contrato_modelo está preenchida.");
+      } else {
+        toast.success(`IXC sincronizado! ${criados} criados, ${atualizados} atualizados (${total} encontrados).`);
+      }
+    },
+    onError: (err) => toast.error(`Erro ao sincronizar: ${err.message}`),
+  });
+
   const handleSalvar = (formData) => {
     if (editingTemplate?.id) {
       updateMutation.mutate({ id: editingTemplate.id, data: formData });
@@ -246,6 +281,8 @@ export default function TemplatesContrato() {
       onDuplicar={handleDuplicar}
       onDeletar={deleteMutation.mutate}
       onPreview={(t) => { setPreviewTemplate(t); setView("preview"); }}
+      onSincronizarIXC={() => sincronizarIXCMutation.mutate()}
+      isSincronizando={sincronizarIXCMutation.isPending}
     />
   );
 }

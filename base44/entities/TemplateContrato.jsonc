@@ -25,6 +25,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "id_modelo_ixc": {
+      "type": "string",
+      "description": "ID do modelo de contrato no IXC (para sincroniza\u00e7\u00e3o)"
     }
   },
   "required": [
