@@ -75,19 +75,23 @@ function PlanoCard({ plano, waLink, empresarial }) {
         </div>
         <p className="text-sm text-gray-400 font-medium uppercase mt-0.5">MENSAIS</p>
       </div>
-      <Button
-        asChild
-        className={cn(
-          "w-full rounded-2xl h-12 font-bold text-base mt-auto gap-2",
-          isPopular
-            ? "bg-orange-500 hover:bg-orange-600 text-white"
-            : "bg-blue-700 hover:bg-blue-800 text-white"
-        )}
-      >
-        <a href={waLink} target="_blank" rel="noopener noreferrer">
-          Assine já
+      <div className="flex flex-col gap-2 mt-auto">
+        <Button
+          asChild
+          className={cn(
+            "w-full rounded-2xl h-12 font-bold text-base gap-2",
+            isPopular
+              ? "bg-orange-500 hover:bg-orange-600 text-white"
+              : "bg-blue-700 hover:bg-blue-800 text-white"
+          )}
+        >
+          <Link to="/assine">🚀 Assinar online</Link>
+        </Button>
+        <a href={waLink} target="_blank" rel="noopener noreferrer"
+          className="w-full text-center text-xs text-gray-500 hover:text-green-600 font-semibold py-1.5 rounded-xl border border-gray-200 hover:border-green-300 transition-all">
+          💬 Falar no WhatsApp
         </a>
-      </Button>
+      </div>
     </div>
   );
 }
@@ -185,26 +189,31 @@ export default function SiteInstitucional() {
             {navLinks.map(l => (
               <a key={l.label} href={l.href} className="block py-2 text-sm font-semibold text-gray-700 hover:text-blue-600" onClick={() => setMenuOpen(false)}>{l.label}</a>
             ))}
-            <Button asChild className="w-full rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold">
-              <a href={waLink} target="_blank" rel="noopener noreferrer">Assine agora</a>
-            </Button>
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <Button asChild className="rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm">
+                <a href={waLink} target="_blank" rel="noopener noreferrer">📞 Assine agora</a>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full border-2 border-blue-700 text-blue-700 font-bold text-sm">
+                <Link to="/assine" onClick={() => setMenuOpen(false)}>🚀 Online</Link>
+              </Button>
+            </div>
           </div>
         )}
       </nav>
 
       {/* ── HERO ── */}
-      <section className="relative bg-blue-700 overflow-hidden min-h-[520px] flex items-center">
+      <section className="relative bg-blue-700 overflow-hidden min-h-[420px] sm:min-h-[520px] flex items-center">
         {/* BG gradient */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-800 via-blue-700 to-blue-600" />
         <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-blue-500/30 to-transparent" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
           <div className="text-white">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight mb-4">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-tight mb-4">
               Internet 100%<br />
               <span className="text-orange-400">Fibra Óptica</span>
             </h1>
-            <p className="text-2xl sm:text-3xl font-bold text-white/90 mb-8">
+            <p className="text-xl sm:text-3xl font-bold text-white/90 mb-6 sm:mb-8">
               Pra você aproveitar<br />ao máximo!
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -286,7 +295,7 @@ export default function SiteInstitucional() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
             {planosExibidos.map((plano, i) => (
               <PlanoCard
                 key={plano.id || i}
@@ -295,6 +304,15 @@ export default function SiteInstitucional() {
                 empresarial={abaPlanos === "empresarial"}
               />
             ))}
+          </div>
+          {/* CTA rápido abaixo dos planos */}
+          <div className="mt-10 text-center">
+            <p className="text-gray-600 text-base mb-4">Prefere assinar 100% online, sem sair de casa?</p>
+            <Link to="/assine">
+              <Button size="lg" className="rounded-full h-14 px-12 text-lg font-bold bg-blue-700 hover:bg-blue-800 text-white gap-2 shadow-lg">
+                Assinar agora online <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
