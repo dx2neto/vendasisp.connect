@@ -82,6 +82,56 @@ Deno.serve(async (req) => {
       resultados.planos_atualizados = updates;
     }
 
+    // ── Sincronizar clientes IXC → Leads CRM ─────────────────────────────
+    if (tipo === 'sync_leads') {
+      const rClientes = await ixcRequest('cliente', {
+        qtype: 'ativo', query: 'S', oper: '=', page: '1', rp: '200',
+        sortname: 'id', sortorder: 'desc',
+      });
+      const raw = rClientes.data;
+      const clientes = Array.isArray(raw) ? raw
+        : Array.isArray(raw?.registros) ? raw.registros
+        : Array.isArray(raw?.data) ? raw.data : [];
+
+      console.log(`Encontrados ${clientes.length} clientes no IXC`);
+
+      let importados = 0;
+      let existentes = 0;
+
+      for (const c of clientes.slice(0, 100)) { // Limita a 100 por vez
+        if (!c.id) continue;
+        // Verifica se já existe lead com esse id_cliente_ixc
+        const jaExiste = await base44.asServiceRole.entities.Lead.filter({ id_cliente_ixc: String(c.id) });
+        if (jaExiste.length > 0) { existentes++; continue; }
+
+        const lead = {
+          nome: c.razao || c.nome_fantasia || c.nome || `Cliente IXC #${c.id}`,
+          cnpj_cpf: c.cnpj_cpf || c.cpf || '',
+          tipo_pessoa: c.tipo_pessoa || 'F',
+          rg: c.rg || '',
+          telefone: c.fone_celular || c.fone || '',
+          email: c.email || '',
+          cep: c.cep || '',
+          rua: c.endereco || '',
+          numero: c.numero || '',
+          complemento: c.complemento || '',
+          bairro: c.bairro || '',
+          cidade_nome: c.cidade || '',
+          uf: c.uf || '',
+          canal_origem: 'site',
+          etapa_funil: 'ativado',
+          id_cliente_ixc: String(c.id),
+          observacao: `Importado do IXC em ${new Date().toLocaleDateString('pt-BR')}`,
+        };
+        await base44.asServiceRole.entities.Lead.create(lead);
+        importados++;
+      }
+
+      resultados.leads_importados = importados;
+      resultados.leads_existentes = existentes;
+      resultados.total_ixc = clientes.length;
+    }
+
     // ── Sincronizar modelos de contrato do IXC → TemplateContrato ─────────
     if (tipo === 'sync_modelos') {
       // Busca modelos de contrato no IXC via endpoint correto

@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Loader2, RefreshCw, AlertCircle, Zap, Database, Mail, Clock, Activity, Settings } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, RefreshCw, AlertCircle, Zap, Database, Mail, Clock, Activity, Settings, RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import IntegracaoForm from "@/components/integracoes/IntegracaoForm";
+import SincronizacaoIXC from "@/components/integracoes/SincronizacaoIXC";
 
 function IntegrationCard({ name, icon: Icon, status, lastSync, error, onTest, testing, description, onConfigure }) {
   return (
@@ -257,6 +258,7 @@ export default function Integracoes() {
       <Tabs defaultValue="status" className="space-y-4">
         <TabsList className="rounded-xl">
           <TabsTrigger value="status" className="rounded-lg gap-1.5"><Activity className="w-3.5 h-3.5" />Status</TabsTrigger>
+          <TabsTrigger value="sync" className="rounded-lg gap-1.5"><Database className="w-3.5 h-3.5" />Sincronização IXC</TabsTrigger>
           <TabsTrigger value="logs" className="rounded-lg gap-1.5"><Clock className="w-3.5 h-3.5" />Histórico</TabsTrigger>
         </TabsList>
 
@@ -307,6 +309,11 @@ export default function Integracoes() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Sync Tab */}
+        <TabsContent value="sync" className="mt-6">
+          <SincronizacaoIXC />
         </TabsContent>
 
         {/* Logs Tab */}
