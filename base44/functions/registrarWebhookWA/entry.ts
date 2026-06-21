@@ -15,15 +15,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'EVOLUTION_URL e EVOLUTION_API_KEY não configurados' }, { status: 400 });
     }
 
-    const resp = await fetch(`${EVOLUTION_URL}/webhook/set/${EVOLUTION_INSTANCE_ID}`, {
+    const resp = await fetch(`${EVOLUTION_URL}/instance/connect`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_API_KEY },
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': EVOLUTION_API_KEY,
+        'instanceId': EVOLUTION_INSTANCE_ID || '',
+      },
       body: JSON.stringify({
-        webhook: {
-          url: webhook_url,
-          enabled: true,
-          events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'SEND_MESSAGE', 'CONNECTION_UPDATE'],
-        }
+        webhookUrl: webhook_url,
+        subscribe: ['MESSAGE', 'SEND_MESSAGE', 'CONNECTION', 'READ_RECEIPT', 'QRCODE'],
+        immediate: true,
       }),
     });
 

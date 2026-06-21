@@ -22,12 +22,12 @@ Deno.serve(async (req) => {
     let statusMsg = 'enviado';
 
     if (EVOLUTION_URL && EVOLUTION_API_KEY) {
-      const resp = await fetch(`${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE_ID || ''}`, {
+      const resp = await fetch(`${EVOLUTION_URL}/send/text`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': EVOLUTION_API_KEY,
-          ...(EVOLUTION_INSTANCE_ID ? { 'instanceId': EVOLUTION_INSTANCE_ID } : {}),
+          'instanceId': EVOLUTION_INSTANCE_ID || '',
         },
         body: JSON.stringify({ number: telefone, text: texto }),
       });
