@@ -13,6 +13,7 @@ import { usePermissions } from "@/lib/usePermissions";
 const menuItems = [
   { label: "Dashboard",     icon: LayoutDashboard, path: "/",              roles: ["admin","gerente","vendedor","revendedor"] },
   { label: "Meu Painel",    icon: UserCog,          path: "/vendedor",      roles: ["vendedor"] },
+  { label: "Painel Revenda", icon: Briefcase,        path: "/painel-revendedor", roles: ["revendedor"] },
   { label: "Esteira",       icon: Kanban,            path: "/esteira",       roles: ["admin","gerente","vendedor"] },
   { label: "Leads",         icon: Users,             path: "/leads",         roles: ["admin","gerente","vendedor"] },
   { label: "Pedidos",       icon: ShoppingCart,      path: "/pedidos",       roles: ["admin","gerente","vendedor","revendedor"] },

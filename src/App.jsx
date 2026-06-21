@@ -38,6 +38,7 @@ import BoletoFacil from "@/pages/BoletoFacil";
 import GestaoUsuarios from "@/pages/GestaoUsuarios";
 import FinanceiroDashboard from "@/pages/FinanceiroDashboard";
 import Planometro from "@/pages/Planometro";
+import PainelRevendedor from "@/pages/PainelRevendedor";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -90,6 +91,7 @@ const AuthenticatedApp = () => {
           <Route path="/roleta-config" element={<ConfigRoleta />} />
           <Route path="/financeiro" element={<FinanceiroDashboard />} />
           <Route path="/usuarios" element={<GestaoUsuarios />} />
+          <Route path="/painel-revendedor" element={<PainelRevendedor />} />
         </Route>
       </Route>
 
