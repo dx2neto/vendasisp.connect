@@ -1,6 +1,65 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { jsPDF } from 'npm:jspdf@4.0.0';
 
+const onlyDigits = (v) => String(v || '').replace(/\D/g, '');
+
+function getInstancias() {
+  const raw = Deno.env.get('IXC_INSTANCES');
+  if (raw) {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length) {
+        return arr.map((i, idx) => ({
+          id: i.id ?? idx,
+          cidade: i.cidade || i.nome || `IXC #${i.id ?? idx}`,
+          host: String(i.host || '').replace(/\/$/, ''),
+          auth: i.auth || i.token_basic || '',
+        })).filter((i) => i.host && i.auth);
+      }
+    } catch (_) { /* fallback */ }
+  }
+  const host = (Deno.env.get('IXC_HOST') || '').replace(/\/$/, '');
+  const auth = Deno.env.get('IXC_AUTH_BASIC') || '';
+  return host && auth ? [{ id: 0, cidade: 'IXC (padrão)', host, auth }] : [];
+}
+
+async function ixcListar(inst, endpoint, body) {
+  try {
+    const r = await fetch(`${inst.host}/webservice/v1/${endpoint}`, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${inst.auth}`, 'Content-Type': 'application/json', ixcsoft: 'listar' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    const registros = Array.isArray(data?.registros) ? data.registros : Array.isArray(data) ? data : [];
+    return { ok: r.ok, registros };
+  } catch (_) { return { ok: false, registros: [] }; }
+}
+
+async function consultarHistorico(cpf, logradouro, numero) {
+  const instancias = getInstancias();
+  const resultados = [];
+  for (const inst of instancias) {
+    const item = { id: inst.id, cidade: inst.cidade, ja_foi_cliente: false, meu_status: '', internet_no_endereco: false, cliente_anterior: null };
+    if (cpf) {
+      const rc = await ixcListar(inst, 'cliente', { qtype: 'cliente.cnpj_cpf', query: cpf, oper: '=', page: '1', rp: '5', sortname: 'cliente.id', sortorder: 'desc' });
+      const meu = rc.registros[0];
+      if (meu) { item.ja_foi_cliente = true; item.meu_status = meu.ativo || meu.status || ''; }
+    }
+    if (logradouro) {
+      const ra = await ixcListar(inst, 'cliente', { qtype: 'cliente.endereco', query: logradouro, oper: 'L', page: '1', rp: '50', sortname: 'cliente.id', sortorder: 'desc' });
+      const noEnd = ra.registros.filter((c) => (numero ? onlyDigits(c.numero) === onlyDigits(numero) : true) && onlyDigits(c.cnpj_cpf) !== onlyDigits(cpf));
+      if (noEnd.length) {
+        item.internet_no_endereco = true;
+        const a = noEnd[0];
+        item.cliente_anterior = { nome: a.razao || a.fantasia || a.nome || '—', cnpj_cpf: a.cnpj_cpf || '', status: a.ativo || '' };
+      }
+    }
+    resultados.push(item);
+  }
+  return resultados;
+}
+
 // Gera o PDF de ANÁLISE de um pedido (crédito + dados + porquê aprovou/reprovou).
 // Restrito a admin e gerente. Entrada: { pedido_id }.
 Deno.serve(async (req) => {
@@ -63,6 +122,13 @@ Deno.serve(async (req) => {
     const dataFormatada = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const numeroPedido = `#${String(pedido.id).slice(0, 8).toUpperCase()}`;
 
+    // Histórico por cidade (multi-IXC): já foi cliente? internet/cliente anterior no endereço?
+    const historico = await consultarHistorico(
+      onlyDigits(lead?.cnpj_cpf || pedido.lead_cpf),
+      lead?.rua || '',
+      lead?.numero || '',
+    ).catch(() => []);
+
     // ─── PDF ───
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const W = 210, margin = 14;
@@ -113,6 +179,7 @@ Deno.serve(async (req) => {
       y += 6.5;
     };
     const sep = () => { doc.setDrawColor(220, 220, 220); doc.line(margin, y, W - margin, y); y += 5; };
+    const ensure = (h) => { if (y + h > 280) { doc.addPage(); y = 16; } };
 
     // Dados da assinatura
     secao('Dados da Assinatura');
@@ -173,8 +240,57 @@ Deno.serve(async (req) => {
     linha('Resultado', pedido.status === 'recusado' ? 'Reprovado' : 'Aprovado');
     sep();
 
+    // ── Histórico do cliente / endereço (multi-IXC) ──
+    ensure(20);
+    secao('Histórico do Cliente e do Endereço');
+    const foiClienteEm = historico.filter((h) => h.ja_foi_cliente).map((h) => h.cidade);
+    const internetEm = historico.filter((h) => h.internet_no_endereco);
+    linha('Já foi cliente?', foiClienteEm.length ? `SIM — ${foiClienteEm.join(', ')}` : 'Não localizado');
+    linha('Internet no endereço?', internetEm.length ? `SIM — ${internetEm.map((h) => h.cidade).join(', ')}` : 'Não localizado');
+    const anterior = internetEm.find((h) => h.cliente_anterior)?.cliente_anterior;
+    if (anterior) {
+      linha('Cliente anterior', anterior.nome, 'Doc.', anterior.cnpj_cpf || '—');
+      linha('Situação do anterior', (anterior.status === 'S' ? 'Ativo' : anterior.status === 'N' ? 'Inativo' : anterior.status || '—'));
+    }
+    sep();
+
+    // ── Consulta por ERP (cidades) ──
+    ensure(14);
+    secao('Consulta por ERP (cidades)');
+    if (!historico.length) {
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120);
+      doc.text('Nenhuma instância IXC configurada (defina o secret IXC_INSTANCES para consulta multi-cidade).', margin + 2, y);
+      y += 7;
+    } else {
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+      for (const h of historico) {
+        ensure(7);
+        const flags = [];
+        if (h.ja_foi_cliente) flags.push('já foi cliente');
+        if (h.internet_no_endereco) flags.push('internet no endereço');
+        const txt = flags.length ? flags.join(' · ') : 'sem histórico';
+        doc.setTextColor(90, 90, 90);
+        doc.text(`ERP (${h.id}) ${h.cidade}:`, margin + 2, y);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(h.ja_foi_cliente || h.internet_no_endereco ? 200 : 60, h.ja_foi_cliente || h.internet_no_endereco ? 120 : 120, 30);
+        doc.text(txt, margin + 70, y);
+        doc.setFont('helvetica', 'normal');
+        y += 5;
+      }
+      y += 2;
+    }
+    sep();
+
+    // ── Aceite dos Termos ──
+    ensure(16);
+    secao('Aceite dos Termos');
+    doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60);
+    doc.text('Li, entendi e aceito os Termos do Contrato de Prestação de Serviços de Comunicação Multimídia.', margin + 2, y);
+    y += 8;
+
     // Segurança (se disponível)
     if (contrato?.ip_assinante || pedido.ip_assinatura) {
+      ensure(20);
       secao('Informações de Segurança');
       linha('IP do assinante', contrato?.ip_assinante || pedido.ip_assinatura || '—');
       if (contrato?.navegador_assinante) {
