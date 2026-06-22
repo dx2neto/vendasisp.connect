@@ -57,6 +57,15 @@
     "link_assinatura": {
       "type": "string"
     },
+    "relatorio_pedido_url": {
+      "type": "string",
+      "description": "URL do relatório do pedido em PDF"
+    },
+    "data_relatorio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de geração do relatório"
+    },
     "sincronizado_ixc": {
       "type": "boolean",
       "default": false
