@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DollarSign, TrendingUp, TrendingDown, Clock, CheckCircle2,
-  AlertCircle, Zap, BarChart3, ArrowUpRight, Wallet, Loader2
+  AlertCircle, Zap, BarChart3, ArrowUpRight, Wallet, Loader2, FileSignature
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval } from "date-fns";
@@ -14,6 +14,7 @@ import { ptBR } from "date-fns/locale";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend
 } from "recharts";
+import PainelContratosIXC from "@/components/financeiro/PainelContratosIXC";
 
 const fmt = (v) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
@@ -63,6 +64,11 @@ export default function FinanceiroDashboard() {
   const pagarMutation = useMutation({
     mutationFn: (id) => base44.entities.Comissao.update(id, { status: "pago" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["comissoes"] }),
+  });
+
+  const ativarIXCMutation = useMutation({
+    mutationFn: (pedido) => base44.functions.invoke("ativarIXC", { pedido_id: pedido.id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pedidos"] }),
   });
 
   // KPIs globais
@@ -206,6 +212,14 @@ export default function FinanceiroDashboard() {
           <TabsTrigger value="ativados" className="rounded-lg gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5" />Receita Ativada
           </TabsTrigger>
+          <TabsTrigger value="contratos" className="rounded-lg gap-1.5">
+            <FileSignature className="w-3.5 h-3.5" />Contratos & IXC
+            {pedidos.filter(p => p.status === "assinado").length > 0 && (
+              <span className="ml-1 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {pedidos.filter(p => p.status === "assinado").length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="comissoes" className="rounded-lg gap-1.5">
             <DollarSign className="w-3.5 h-3.5" />Comissões Pendentes
             {comissoesPendentesLista.length > 0 && (
@@ -289,6 +303,21 @@ export default function FinanceiroDashboard() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </TabsContent>
+
+        {/* Contratos & Ativação IXC */}
+        <TabsContent value="contratos" className="mt-4">
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <PainelContratosIXC
+              pedidos={pedidos}
+              onAtivar={(p) => ativarIXCMutation.mutate(p)}
+            />
+            {ativarIXCMutation.isPending && (
+              <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /> Ativando no IXC...
+              </div>
+            )}
           </div>
         </TabsContent>
 
