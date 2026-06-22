@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const config = await base44.entities.ConfigRegras.list();
     const zapsignUrl = config[0]?.zapsign_url_api || 'https://api.zapsign.com.br/api/v1/';
 
-    const response = await fetch(`${zapsignUrl}users/`, {
+    const response = await fetch(`${zapsignUrl}docs/?page=1`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -26,11 +26,10 @@ Deno.serve(async (req) => {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      return Response.json({ 
-        success: true, 
+      await response.json().catch(() => null);
+      return Response.json({
+        success: true,
         message: 'Conexão com ZapSign estabelecida com sucesso',
-        user: data 
       });
     } else {
       return Response.json({ 

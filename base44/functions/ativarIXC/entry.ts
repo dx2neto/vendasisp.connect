@@ -51,6 +51,17 @@ Deno.serve(async (req) => {
     const cpf = (pedido.lead_cpf || lead?.cnpj_cpf || '').replace(/\D/g, '');
     const tipoPessoa = lead?.tipo_pessoa || 'F';
 
+    // Reaproveita cliente já existente no IXC (evita duplicado pelo CPF/CNPJ)
+    let idClienteIxc = '';
+    if (cpf) {
+      const busca = await ixcRequest('POST', 'cliente', {
+        qtype: 'cliente.cnpj_cpf', query: cpf, oper: '=',
+        page: '1', rp: '1', sortname: 'cliente.id', sortorder: 'desc',
+      });
+      const achado = Array.isArray(busca.data?.registros) ? busca.data.registros[0] : null;
+      if (achado?.id) idClienteIxc = String(achado.id);
+    }
+
     const clientePayload = {
       razao: pedido.lead_nome,
       fantasia: pedido.lead_nome,
@@ -71,11 +82,13 @@ Deno.serve(async (req) => {
       vendedor: cfg.id_vendedor_ixc_padrao || '1',
     };
 
-    const clienteResp = await ixcRequest('POST', 'cliente', clientePayload);
-    if (!clienteResp.ok) {
-      return Response.json({ error: 'Erro ao criar cliente no IXC', detalhe: clienteResp.data }, { status: 502 });
+    if (!idClienteIxc) {
+      const clienteResp = await ixcRequest('POST', 'cliente', clientePayload);
+      if (!clienteResp.ok) {
+        return Response.json({ error: 'Erro ao criar cliente no IXC', detalhe: clienteResp.data }, { status: 502 });
+      }
+      idClienteIxc = String(clienteResp.data?.id || clienteResp.data?.referencia || '');
     }
-    const idClienteIxc = String(clienteResp.data?.id || clienteResp.data?.referencia || '');
 
     // ── 2. Cria contrato de serviço ──────────────────────────────────────────
     // Campos conferidos com a collection CRUD cliente_contrato da instância.

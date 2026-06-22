@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       try {
         // Buscar status do documento no ZapSign
         if (contrato.id_zapsign) {
-          const response = await fetch(`${zapsignUrl}documents/${contrato.id_zapsign}/`, {
+          const response = await fetch(`${zapsignUrl}docs/${contrato.id_zapsign}/`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
