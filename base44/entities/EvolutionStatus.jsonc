@@ -1,0 +1,37 @@
+{
+  "name": "EvolutionStatus",
+  "type": "object",
+  "properties": {
+    "qr_code": {
+      "type": "string",
+      "description": "QR Code em base64 para pareamento WhatsApp"
+    },
+    "status_conexao": {
+      "type": "string",
+      "enum": [
+        "conectado",
+        "desconectado",
+        "aguardando_qr",
+        "erro"
+      ],
+      "default": "desconectado"
+    },
+    "instance_id": {
+      "type": "string",
+      "description": "UUID da inst\u00e2ncia no Evolution Go"
+    },
+    "instance_name": {
+      "type": "string",
+      "description": "Nome da inst\u00e2ncia no Evolution Go"
+    },
+    "phone_connected": {
+      "type": "string",
+      "description": "N\u00famero do WhatsApp conectado"
+    },
+    "ultimo_evento": {
+      "type": "string",
+      "description": "\u00daltimo evento recebido do webhook"
+    }
+  },
+  "required": []
+}

@@ -92,6 +92,47 @@ Deno.serve(async (req) => {
           }
         }
       }
+
+      // === Eventos de conexão Evolution Go ===
+      if (event === 'QRCode' || event === 'qrcode') {
+        const qr = data?.qrcode || data?.base64 || data?.qr || '';
+        if (qr) {
+          const statusList = await db.entities.EvolutionStatus.list();
+          const s = statusList[0];
+          if (s) {
+            await db.entities.EvolutionStatus.update(s.id, {
+              qr_code: qr,
+              status_conexao: 'aguardando_qr',
+              ultimo_evento: 'QRCode',
+            });
+          }
+        }
+      }
+
+      if (event === 'Connected' || event === 'PairSuccess') {
+        const phone = data?.phone || data?.number || '';
+        const statusList = await db.entities.EvolutionStatus.list();
+        const s = statusList[0];
+        if (s) {
+          await db.entities.EvolutionStatus.update(s.id, {
+            status_conexao: 'conectado',
+            qr_code: '',
+            phone_connected: phone,
+            ultimo_evento: event,
+          });
+        }
+      }
+
+      if (event === 'LoggedOut' || event === 'OfflineSyncCompleted') {
+        const statusList = await db.entities.EvolutionStatus.list();
+        const s = statusList[0];
+        if (s) {
+          await db.entities.EvolutionStatus.update(s.id, {
+            status_conexao: event === 'LoggedOut' ? 'desconectado' : s.status_conexao,
+            ultimo_evento: event,
+          });
+        }
+      }
     } catch (e) {
       console.error('Webhook error:', e.message);
     }

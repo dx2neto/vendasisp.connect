@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Loader2, RefreshCw, AlertCircle, Zap, Database, Mail, Clock, Activity, Settings, RefreshCcw } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, RefreshCw, AlertCircle, Zap, Database, Mail, Clock, Activity, Settings, RefreshCcw, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import IntegracaoForm from "@/components/integracoes/IntegracaoForm";
 import SincronizacaoIXC from "@/components/integracoes/SincronizacaoIXC";
+import GerenciamentoEvolution from "@/components/integracoes/GerenciamentoEvolution";
 
 function IntegrationCard({ name, icon: Icon, status, lastSync, error, onTest, testing, description, onConfigure }) {
   return (
@@ -127,6 +128,8 @@ export default function Integracoes() {
   const { data: analises = [] } = useQuery({ queryKey: ["analises"], queryFn: () => base44.entities.AnaliseCredito.list("-created_date", 50) });
   const { data: contratos = [] } = useQuery({ queryKey: ["contratos"], queryFn: () => base44.entities.Contrato.list("-updated_date", 50) });
   const { data: config = {} } = useQuery({ queryKey: ["configIntegracao"], queryFn: () => base44.entities.ConfigRegras.list().then(r => r[0] || {}) });
+  const { data: evolutionStatus = [] } = useQuery({ queryKey: ["evolutionStatus"], queryFn: () => base44.entities.EvolutionStatus.list("-updated_date", 1), refetchInterval: 5000 });
+  const evoStatus = evolutionStatus[0] || {};
 
   const { mutate: saveIntegration, isPending: saving } = useMutation({
     mutationFn: (data) => base44.entities.ConfigRegras.update(config.id, data),
@@ -139,7 +142,8 @@ export default function Integracoes() {
   const testIntegration = async (service) => {
     setTesting(prev => ({ ...prev, [service]: true }));
     try {
-      const res = await base44.functions.invoke("testarIXC", {});
+      const fnName = service === "evolution" ? "testarEvolution" : "testarIXC";
+      const res = await base44.functions.invoke(fnName, {});
       setTestResults(prev => ({
         ...prev,
         [service]: { ok: res.data?.ok, error: res.data?.error || res.data?.msg }
@@ -205,6 +209,17 @@ export default function Integracoes() {
         { key: "id_valido_key", label: "Chave de Acesso", placeholder: "Sua chave Valido", type: "password" },
       ]
     },
+    {
+      id: "evolution",
+      name: "Evolution Go",
+      icon: MessageCircle,
+      description: "WhatsApp / Atendimento",
+      status: evoStatus.status_conexao === "conectado" ? "ok" : evoStatus.status_conexao === "aguardando_qr" ? "testing" : "unknown",
+      lastSync: evoStatus.updated_date
+        ? format(new Date(evoStatus.updated_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
+        : "Nunca",
+      error: null,
+    },
   ];
 
   return (
@@ -258,6 +273,7 @@ export default function Integracoes() {
       <Tabs defaultValue="status" className="space-y-4">
         <TabsList className="rounded-xl">
           <TabsTrigger value="status" className="rounded-lg gap-1.5"><Activity className="w-3.5 h-3.5" />Status</TabsTrigger>
+          <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><MessageCircle className="w-3.5 h-3.5" />Evolution Go</TabsTrigger>
           <TabsTrigger value="sync" className="rounded-lg gap-1.5"><Database className="w-3.5 h-3.5" />Sincronização IXC</TabsTrigger>
           <TabsTrigger value="logs" className="rounded-lg gap-1.5"><Clock className="w-3.5 h-3.5" />Histórico</TabsTrigger>
         </TabsList>
@@ -306,9 +322,18 @@ export default function Integracoes() {
                   <p className="font-medium mb-1">⚡ Valido Cadastro (Crédito)</p>
                   <p className="text-muted-foreground">Chave de acesso nos secrets. Consultado automaticamente ao criar pedidos.</p>
                 </div>
+                <div>
+                  <p className="font-medium mb-1">💬 Evolution Go (WhatsApp)</p>
+                  <p className="text-muted-foreground">Gerencie a conexão do WhatsApp na aba <strong>Evolution Go</strong>. Crie instância, gere QR Code e conecte o número.</p>
+                </div>
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Evolution Go Tab */}
+        <TabsContent value="evolution" className="mt-6">
+          <GerenciamentoEvolution />
         </TabsContent>
 
         {/* Sync Tab */}
