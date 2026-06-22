@@ -35,68 +35,53 @@ Deno.serve(async (req) => {
       const contrato = contratos.find(c => c.pedido_id === pedido.id);
       if (!contrato || contrato.status !== 'assinado') continue;
 
-      // Verificar se comissão já existe
-      const comissao_existente = comissoes_existentes.find(
-        c => c.pedido_id === pedido.id && c.vendedor_id === pedido.vendedor_id
+      // Dedup independente por (pedido, tipo) — idempotente e consistente com ativarIXC
+      const jaTem = (tipo, quemId) => comissoes_existentes.some(
+        c => c.pedido_id === pedido.id && c.tipo === tipo &&
+             (quemId ? String(c.vendedor_id) === String(quemId) : true)
       );
 
-      if (comissao_existente) {
-        // Se já existe, pula
-        continue;
-      }
-
-      // Calcular comissão
-      const percentual = pedido.revendedor_id ? comissao_revendedor : comissao_padrao;
-      const valor_comissao = (pedido.valor || 0) * (percentual / 100);
-
-      if (valor_comissao <= 0) continue;
-
-      // Criar comissão de vendedor
-      const comissao_vendedor = {
-        vendedor_id: pedido.vendedor_id,
-        vendedor_nome: pedido.vendedor_nome,
-        pedido_id: pedido.id,
-        lead_nome: pedido.lead_nome,
-        plano_nome: pedido.plano_nome,
-        valor: valor_comissao,
-        percentual: percentual,
-        status: 'a_receber',
-        tipo: 'vendedor',
-      };
-
-      try {
-        const created = await base44.asServiceRole.entities.Comissao.create(comissao_vendedor);
-        result.criadas.push({ pedido_id: pedido.id, valor: valor_comissao, tipo: 'vendedor' });
-        result.valor_total += valor_comissao;
-      } catch (e) {
-        console.log('Erro ao criar comissão:', e.message);
-      }
-
-      // Se tem revendedor, criar comissão de revendedor também
-      if (pedido.revendedor_id) {
-        const percentual_rev = comissao_revendedor;
-        const valor_rev = (pedido.valor || 0) * (percentual_rev / 100);
-
-        if (valor_rev > 0) {
-          const comissao_revendedor_obj = {
-            vendedor_id: pedido.revendedor_id,
-            vendedor_nome: pedido.revendedor_nome,
-            pedido_id: pedido.id,
-            lead_nome: pedido.lead_nome,
-            plano_nome: pedido.plano_nome,
-            valor: valor_rev,
-            percentual: percentual_rev,
-            status: 'a_receber',
-            tipo: 'revendedor',
-          };
-
+      // Comissão do vendedor — sempre % padrão de vendedor
+      if ((pedido.vendedor_id || pedido.vendedor_nome) && !jaTem('vendedor', pedido.vendedor_id)) {
+        const valor_comissao = (pedido.valor || 0) * (comissao_padrao / 100);
+        if (valor_comissao > 0) {
           try {
-            const created = await base44.asServiceRole.entities.Comissao.create(comissao_revendedor_obj);
+            await base44.asServiceRole.entities.Comissao.create({
+              vendedor_id: pedido.vendedor_id || '',
+              vendedor_nome: pedido.vendedor_nome || '',
+              pedido_id: pedido.id,
+              lead_nome: pedido.lead_nome,
+              plano_nome: pedido.plano_nome,
+              valor: valor_comissao,
+              percentual: comissao_padrao,
+              status: 'a_receber',
+              tipo: 'vendedor',
+            });
+            result.criadas.push({ pedido_id: pedido.id, valor: valor_comissao, tipo: 'vendedor' });
+            result.valor_total += valor_comissao;
+          } catch (e) { console.log('Erro ao criar comissão vendedor:', e.message); }
+        }
+      }
+
+      // Comissão do revendedor — % de revendedor, deduplicada à parte
+      if ((pedido.revendedor_id || pedido.revendedor_nome) && !jaTem('revendedor', pedido.revendedor_id)) {
+        const valor_rev = (pedido.valor || 0) * (comissao_revendedor / 100);
+        if (valor_rev > 0) {
+          try {
+            await base44.asServiceRole.entities.Comissao.create({
+              vendedor_id: pedido.revendedor_id || '',
+              vendedor_nome: pedido.revendedor_nome || '',
+              pedido_id: pedido.id,
+              lead_nome: pedido.lead_nome,
+              plano_nome: pedido.plano_nome,
+              valor: valor_rev,
+              percentual: comissao_revendedor,
+              status: 'a_receber',
+              tipo: 'revendedor',
+            });
             result.criadas.push({ pedido_id: pedido.id, valor: valor_rev, tipo: 'revendedor' });
             result.valor_total += valor_rev;
-          } catch (e) {
-            console.log('Erro ao criar comissão revendedor:', e.message);
-          }
+          } catch (e) { console.log('Erro ao criar comissão revendedor:', e.message); }
         }
       }
     }
