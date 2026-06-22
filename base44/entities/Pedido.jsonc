@@ -61,6 +61,11 @@
       "type": "boolean",
       "default": false
     },
+    "email_assinatura_enviado": {
+      "type": "boolean",
+      "default": false,
+      "description": "Evita notificação duplicada de contrato assinado"
+    },
     "data_credito": {
       "type": "string",
       "format": "date-time"
