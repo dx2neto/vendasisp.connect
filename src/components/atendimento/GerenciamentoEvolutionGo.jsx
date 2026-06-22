@@ -17,6 +17,7 @@ export default function GerenciamentoEvolutionGo() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrCode, setQrCode] = useState(null);
   const [conectando, setConectando] = useState(false);
+  const [atualizandoQR, setAtualizandoQR] = useState(false);
   const [phoneParear, setPhoneParear] = useState("");
 
   const { data: evolutionStatus = [] } = useQuery({
@@ -71,6 +72,28 @@ export default function GerenciamentoEvolutionGo() {
       toast.error("Erro: " + e.message);
     } finally {
       setCriandoInstancia(false);
+    }
+  };
+
+  // Atualizar QR Code
+  const atualizarQRCode = async () => {
+    setAtualizandoQR(true);
+    try {
+      const res = await base44.functions.invoke("gerenciarEvolution", {
+        acao: "qr",
+      });
+
+      if (res.data?.ok && res.data.qr_code) {
+        setQrCode(res.data.qr_code);
+        setShowQRModal(true);
+        toast.success("QR Code atualizado!");
+      } else {
+        toast.error("Não foi possível obter o QR Code");
+      }
+    } catch (e) {
+      toast.error("Erro: " + e.message);
+    } finally {
+      setAtualizandoQR(false);
     }
   };
 
@@ -198,44 +221,57 @@ export default function GerenciamentoEvolutionGo() {
           </div>
 
           {/* Ações */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            {evoStatus.instance_id ? (
-              <>
-                {evoStatus.status_conexao === "conectado" ? (
-                  <Button onClick={desconectar} variant="outline" className="gap-2 rounded-xl" size="sm">
-                    <Phone className="w-4 h-4" />
-                    Desconectar WhatsApp
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      onClick={conectarInstancia}
-                      disabled={conectando}
-                      className="gap-2 rounded-xl"
-                      size="sm"
-                    >
-                      {conectando ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" />Conectando...</>
-                      ) : (
-                        <><QrCode className="w-4 h-4" />Gerar QR Code</>
-                      )}
-                    </Button>
-                  </>
-                )}
-                <Button
-                  onClick={deletarInstancia}
-                  variant="destructive"
-                  className="gap-2 rounded-xl"
-                  size="sm"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Deletar Instância
-                </Button>
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground">Crie uma instância para começar</p>
-            )}
-          </div>
+           <div className="flex flex-wrap gap-2 pt-2">
+             {evoStatus.instance_id ? (
+               <>
+                 {evoStatus.status_conexao === "conectado" ? (
+                   <Button onClick={desconectar} variant="outline" className="gap-2 rounded-xl" size="sm">
+                     <Phone className="w-4 h-4" />
+                     Desconectar WhatsApp
+                   </Button>
+                 ) : (
+                   <>
+                     <Button
+                       onClick={conectarInstancia}
+                       disabled={conectando}
+                       className="gap-2 rounded-xl"
+                       size="sm"
+                     >
+                       {conectando ? (
+                         <><Loader2 className="w-4 h-4 animate-spin" />Conectando...</>
+                       ) : (
+                         <><QrCode className="w-4 h-4" />Gerar QR Code</>
+                       )}
+                     </Button>
+                     <Button
+                       onClick={atualizarQRCode}
+                       disabled={atualizandoQR}
+                       variant="outline"
+                       className="gap-2 rounded-xl"
+                       size="sm"
+                     >
+                       {atualizandoQR ? (
+                         <><Loader2 className="w-4 h-4 animate-spin" />Atualizando...</>
+                       ) : (
+                         <><QrCode className="w-4 h-4" />Atualizar QR</>
+                       )}
+                     </Button>
+                   </>
+                 )}
+                 <Button
+                   onClick={deletarInstancia}
+                   variant="destructive"
+                   className="gap-2 rounded-xl"
+                   size="sm"
+                 >
+                   <Trash2 className="w-4 h-4" />
+                   Deletar Instância
+                 </Button>
+               </>
+             ) : (
+               <p className="text-xs text-muted-foreground">Crie uma instância para começar</p>
+             )}
+           </div>
         </CardContent>
       </Card>
 
