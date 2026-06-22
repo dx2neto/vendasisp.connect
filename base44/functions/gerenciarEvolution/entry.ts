@@ -38,19 +38,22 @@ Deno.serve(async (req) => {
     // === STATUS ===
     if (acao === 'status') {
       let instanceInfo = null;
-      if (EVOLUTION_INSTANCE_ID) {
-        const instResp = await fetch(`${EVOLUTION_URL}/instance/fetchInstances`, {
+      try {
+        const instResp = await fetch(`${EVOLUTION_URL}/instance/status`, {
           method: 'GET',
           headers,
         });
         if (instResp.ok) {
           instanceInfo = await instResp.json().catch(() => null);
         }
+      } catch (e) {
+        console.log('Erro ao buscar status da API:', e.message);
       }
+
       return Response.json({
         ok: true,
         instance_id: EVOLUTION_INSTANCE_ID,
-        instance: instanceInfo,
+        instance: instanceInfo || statusRec,
         status_local: statusRec,
       });
     }
