@@ -48,11 +48,11 @@ export default function Esteira() {
   const temAcessoTotal = user?.role === "admin" || user?.role === "gerente";
 
   const { data: pedidos = [] } = useQuery({
-    queryKey: ["pedidos"],
+    queryKey: ["pedidos", user?.id],
     queryFn: async () => {
       const todos = await base44.entities.Pedido.list("-created_date", 200);
       // Se for admin/gerente, mostra tudo; caso contrário, filtra apenas seus pedidos
-      if (temAcessoTotal) return todos;
+      if (user?.role === "admin" || user?.role === "gerente") return todos;
       return todos.filter(p => p.vendedor_id === user?.id || p.vendedor_nome === user?.full_name);
     },
   });
