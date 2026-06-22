@@ -1,141 +1,195 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
-  // Responde rápido
-  const body = await req.json().catch(() => ({}));
-  const base44 = createClientFromRequest(req);
-  const db = base44.asServiceRole;
+  // Parse do payload
+  let body = {};
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ received: false, error: 'Invalid JSON' }, { status: 400 });
+  }
 
-  // Processa em background
+  const { event, data, instanceId, instanceToken } = body;
+
+  // Responde 200 imediatamente
+  // Processamento pesado ocorre em background
   (async () => {
     try {
-      const event = body.event || body.type;
-      const data = body.data || body;
+      const base44 = createClientFromRequest(req);
+      const db = base44.asServiceRole;
 
-      // === EVENTO: Mensagem recebida ===
-      if (event === 'message' || event === 'messages.upsert') {
-        const msg = data.message || data.messageData || data;
-        if (!msg?.key?.remoteJid) return;
+      switch (event) {
+        // === MESSAGE: Mensagem recebida ===
+        case 'Message': {
+          if (!data?.Info || !data?.Message) break;
 
-        const isFromMe = msg.key?.fromMe === true;
-        const isGroup = msg.key?.remoteJid?.includes('@g.us');
-        if (isFromMe || isGroup) return;
+          const info = data.Info;
 
-        // Extrai telefone
-        const telefone = msg.key.remoteJid.replace(/@.*/, '').replace(/\D/g, '');
-        if (!telefone) return;
+          // Ignora mensagens enviadas pela própria instância
+          if (info.IsFromMe === true) break;
 
-        const pushName = msg.pushName || msg.verifiedName || '';
-        const waId = msg.key?.id || '';
+          // Ignora grupos
+          if (info.IsGroup === true) break;
 
-        // Extrai tipo e conteúdo
-        let tipo = 'texto';
-        let conteudo = '';
-        const messageContent = msg.message || {};
+          // Extrai informações
+          const chatJid = info.Chat || '';
+          const senderJid = info.Sender || '';
+          const messageId = info.ID || '';
+          const pushName = info.PushName || '';
+          const type = info.Type || 'text';
+          const mediaType = info.MediaType || null;
+          const timestamp = info.Timestamp ? new Date(info.Timestamp * 1000).toISOString() : new Date().toISOString();
 
-        if (messageContent.conversation) conteudo = messageContent.conversation;
-        else if (messageContent.extendedTextMessage?.text) conteudo = messageContent.extendedTextMessage.text;
-        else if (messageContent.imageMessage) { tipo = 'imagem'; conteudo = messageContent.imageMessage.caption || '[imagem]'; }
-        else if (messageContent.audioMessage) { tipo = 'audio'; conteudo = '[áudio]'; }
-        else if (messageContent.videoMessage) { tipo = 'video'; conteudo = messageContent.videoMessage.caption || '[vídeo]'; }
-        else if (messageContent.documentMessage) { tipo = 'documento'; conteudo = messageContent.documentMessage.fileName || '[documento]'; }
-        else if (messageContent.locationMessage) { tipo = 'localizacao'; conteudo = '[localização]'; }
+          if (!messageId || !chatJid) break;
 
-        if (!conteudo) conteudo = '[mensagem]';
-
-        // Contato
-        let contatos = await db.entities.Contato.filter({ telefone });
-        let contato = contatos[0];
-        if (!contato) {
-          contato = await db.entities.Contato.create({ telefone, nome: pushName || telefone, push_name: pushName });
-        } else if (pushName && !contato.push_name) {
-          await db.entities.Contato.update(contato.id, { push_name: pushName, nome: contato.nome || pushName });
-        }
-
-        // Conversa
-        const conversas = await db.entities.Conversa.filter({ contato_id: contato.id });
-        let conversa = conversas.find(c => ['aguardando', 'em_atendimento'].includes(c.status));
-        if (!conversa) {
-          conversa = await db.entities.Conversa.create({
-            contato_id: contato.id,
-            contato_nome: contato.nome || pushName || telefone,
-            contato_telefone: telefone,
-            status: 'aguardando',
-            nao_lidas: 0,
-            ultima_msg: conteudo,
-            ultima_em: new Date().toISOString(),
-          });
-        }
-
-        // Mensagem
-        await db.entities.Mensagem.create({
-          conversa_id: conversa.id,
-          direcao: 'in',
-          tipo,
-          conteudo,
-          wa_id: waId,
-          status: 'entregue',
-        });
-
-        // Atualiza conversa
-        await db.entities.Conversa.update(conversa.id, {
-          nao_lidas: (conversa.nao_lidas || 0) + 1,
-          ultima_msg: conteudo,
-          ultima_em: new Date().toISOString(),
-        });
-      }
-
-      // === EVENTO: Status de mensagem ===
-      if (event === 'message.update' || event === 'message.receipt.update') {
-        const messageIds = data?.messages || data?.messageIds || [];
-        const statusMap = { 'RECEIVED': 'entregue', 'READ': 'lido', 'PLAYED': 'lido' };
-        const novoStatus = statusMap[data?.status] || data?.state || 'entregue';
-
-        for (const waId of messageIds) {
-          const msgs = await db.entities.Mensagem.filter({ wa_id: waId });
-          for (const m of msgs) {
-            await db.entities.Mensagem.update(m.id, { status: novoStatus });
+          // Extrai o texto (para mensagens de texto)
+          let text = '';
+          if (type === 'text') {
+            text = data.Message.conversation || '';
           }
-        }
-      }
 
-      // === EVENTO: QR Code ===
-      if (event === 'qrcode') {
-        const qr = data?.qrcode || data?.base64 || '';
-        if (qr) {
-          const statusList = await db.entities.EvolutionStatus.list();
-          const s = statusList[0];
-          if (s) {
-            await db.entities.EvolutionStatus.update(s.id, {
-              qr_code: qr,
-              status_conexao: 'aguardando_qr',
-              ultimo_evento: 'qrcode',
+          // Extrai mídia (base64 ou URL)
+          let mediaUrl = '';
+          if (type === 'media') {
+            mediaUrl = data.Message.mediaUrl || (data.Message.base64 ? `data:${mediaType};base64,...` : '');
+          }
+
+          // Cria registro de mensagem
+          await db.entities.WhatsAppMessage.create({
+            messageId,
+            chatJid,
+            senderJid,
+            pushName,
+            type,
+            text,
+            mediaType: mediaType || null,
+            mediaUrl,
+            isFromMe: false,
+            isGroup: false,
+            timestamp,
+            instanceId,
+            rawPayload: { event, data, timestamp: new Date().toISOString() },
+          });
+
+          break;
+        }
+
+        // === QRCODE: Pareamento ===
+        case 'QRCode': {
+          if (!data?.qrcode) break;
+
+          const instances = await db.entities.Instance.filter({ instanceId });
+          const instance = instances[0];
+
+          if (instance) {
+            await db.entities.Instance.update(instance.id, {
+              lastQrCode: data.qrcode,
+            });
+          } else {
+            await db.entities.Instance.create({
+              instanceId,
+              status: 'waiting_qr',
+              lastQrCode: data.qrcode,
             });
           }
+
+          break;
+        }
+
+        // === CONNECTED: Conexão estabelecida ===
+        case 'Connected': {
+          const instances = await db.entities.Instance.filter({ instanceId });
+          const instance = instances[0];
+          const jid = data?.jid || '';
+          const pushName = data?.pushName || '';
+
+          if (instance) {
+            await db.entities.Instance.update(instance.id, {
+              status: 'connected',
+              jid,
+              pushName,
+            });
+          } else {
+            await db.entities.Instance.create({
+              instanceId,
+              status: 'connected',
+              jid,
+              pushName,
+            });
+          }
+
+          break;
+        }
+
+        // === PAIRSUCCESS: Pareamento concluído ===
+        case 'PairSuccess': {
+          const instances = await db.entities.Instance.filter({ instanceId });
+          const instance = instances[0];
+
+          if (instance) {
+            await db.entities.Instance.update(instance.id, {
+              status: 'pair_success',
+            });
+          }
+
+          break;
+        }
+
+        // === LOGGEDOUT: Desconectado ===
+        case 'LoggedOut': {
+          const instances = await db.entities.Instance.filter({ instanceId });
+          const instance = instances[0];
+
+          if (instance) {
+            await db.entities.Instance.update(instance.id, {
+              status: 'disconnected',
+            });
+          }
+
+          break;
+        }
+
+        // === RECEIPT: Confirmação de entrega/leitura ===
+        case 'Receipt': {
+          const state = body.state || data?.status || 'Delivered';
+          const messageIds = data?.MessageIDs || data?.messageIds || [];
+
+          const statusMap = {
+            'Read': 'read',
+            'ReadSelf': 'read',
+            'Delivered': 'delivered',
+            'PendingAck': 'pending',
+          };
+
+          const newStatus = statusMap[state] || 'delivered';
+
+          // Atualiza mensagens com esse status
+          for (const msgId of messageIds) {
+            const msgs = await db.entities.WhatsAppMessage.filter({ messageId: msgId });
+            for (const msg of msgs) {
+              // Atualiza rawPayload com o novo status
+              const updated = msg.rawPayload || {};
+              updated.status = newStatus;
+              await db.entities.WhatsAppMessage.update(msg.id, {
+                rawPayload: updated,
+              });
+            }
+          }
+
+          break;
+        }
+
+        // Qualquer outro evento: apenas loga
+        default: {
+          console.log(`[Webhook] Evento desconhecido: ${event}`, { instanceId, data });
         }
       }
-
-      // === EVENTO: Conexão ===
-      if (event === 'connection') {
-        const statusMap = { 'OPEN': 'conectado', 'CLOSE': 'desconectado', 'CONNECTING': 'aguardando_qr' };
-        const novoStatus = statusMap[data?.status] || data?.status || 'desconectado';
-        const phone = data?.phone || data?.number || '';
-
-        const statusList = await db.entities.EvolutionStatus.list();
-        const s = statusList[0];
-        if (s) {
-          await db.entities.EvolutionStatus.update(s.id, {
-            status_conexao: novoStatus,
-            qr_code: novoStatus === 'aguardando_qr' ? s.qr_code : '',
-            phone_connected: novoStatus === 'conectado' ? phone : s.phone_connected,
-            ultimo_evento: data?.status || event,
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Webhook error:', e.message);
+    } catch (error) {
+      // Registra erro mas não afeta a resposta HTTP
+      console.error(`[Webhook Error] ${error.message}`, { event, instanceId });
     }
   })();
 
-  return Response.json({ ok: true });
+  // Sempre retorna 200 para evitar reenvios do Evolution Go
+  return Response.json({ received: true }, { status: 200 });
 });
