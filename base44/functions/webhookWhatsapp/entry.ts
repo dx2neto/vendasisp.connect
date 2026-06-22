@@ -9,82 +9,88 @@ Deno.serve(async (req) => {
   // Processa em background
   (async () => {
     try {
-      const { event, data } = body;
+      const event = body.event || body.type;
+      const data = body.data || body;
 
-      if (event === 'Message' || event === 'messages.upsert') {
-        // Suporte a formato Evolution API v2
-        const msgs = data?.messages || (data ? [data] : []);
-        for (const msg of msgs) {
-          const info = msg.Info || msg.key || {};
-          const isFromMe = info.IsFromMe || info.fromMe || msg.key?.fromMe;
-          const isGroup = info.IsGroup || (info.remoteJid || '').includes('@g.us');
-          if (isFromMe || isGroup) continue;
+      // === EVENTO: Mensagem recebida ===
+      if (event === 'message' || event === 'messages.upsert') {
+        const msg = data.message || data.messageData || data;
+        if (!msg?.key?.remoteJid) return;
 
-          const chatRaw = info.Chat || info.remoteJid || msg.key?.remoteJid || '';
-          const telefone = chatRaw.replace(/@.*/, '').replace(/:.*/, '').replace(/\D/g, '');
-          if (!telefone) continue;
+        const isFromMe = msg.key?.fromMe === true;
+        const isGroup = msg.key?.remoteJid?.includes('@g.us');
+        if (isFromMe || isGroup) return;
 
-          const pushName = info.PushName || msg.pushName || '';
-          const waId = info.ID || msg.key?.id || '';
+        // Extrai telefone
+        const telefone = msg.key.remoteJid.replace(/@.*/, '').replace(/\D/g, '');
+        if (!telefone) return;
 
-          // Tipo e conteúdo
-          const message = msg.Message || msg.message || {};
-          let tipo = 'texto';
-          let conteudo = message.conversation || message.extendedTextMessage?.text || '';
-          if (message.imageMessage) { tipo = 'imagem'; conteudo = message.imageMessage.caption || '[imagem]'; }
-          else if (message.audioMessage) { tipo = 'audio'; conteudo = '[áudio]'; }
-          else if (message.videoMessage) { tipo = 'video'; conteudo = message.videoMessage.caption || '[vídeo]'; }
-          else if (message.documentMessage) { tipo = 'documento'; conteudo = message.documentMessage.fileName || '[documento]'; }
-          else if (message.locationMessage) { tipo = 'localizacao'; conteudo = '[localização]'; }
-          if (!conteudo) conteudo = '[mensagem]';
+        const pushName = msg.pushName || msg.verifiedName || '';
+        const waId = msg.key?.id || '';
 
-          // Busca ou cria contato
-          let contatos = await db.entities.Contato.filter({ telefone });
-          let contato = contatos[0];
-          if (!contato) {
-            contato = await db.entities.Contato.create({ telefone, nome: pushName || telefone, push_name: pushName });
-          } else if (pushName && !contato.push_name) {
-            await db.entities.Contato.update(contato.id, { push_name: pushName, nome: contato.nome || pushName });
-          }
+        // Extrai tipo e conteúdo
+        let tipo = 'texto';
+        let conteudo = '';
+        const messageContent = msg.message || {};
 
-          // Busca ou cria conversa aberta
-          const conversas = await db.entities.Conversa.filter({ contato_id: contato.id });
-          let conversa = conversas.find(c => c.status === 'aguardando' || c.status === 'em_atendimento');
-          if (!conversa) {
-            conversa = await db.entities.Conversa.create({
-              contato_id: contato.id,
-              contato_nome: contato.nome || pushName || telefone,
-              contato_telefone: telefone,
-              status: 'aguardando',
-              nao_lidas: 0,
-              ultima_msg: conteudo,
-              ultima_em: new Date().toISOString(),
-            });
-          }
+        if (messageContent.conversation) conteudo = messageContent.conversation;
+        else if (messageContent.extendedTextMessage?.text) conteudo = messageContent.extendedTextMessage.text;
+        else if (messageContent.imageMessage) { tipo = 'imagem'; conteudo = messageContent.imageMessage.caption || '[imagem]'; }
+        else if (messageContent.audioMessage) { tipo = 'audio'; conteudo = '[áudio]'; }
+        else if (messageContent.videoMessage) { tipo = 'video'; conteudo = messageContent.videoMessage.caption || '[vídeo]'; }
+        else if (messageContent.documentMessage) { tipo = 'documento'; conteudo = messageContent.documentMessage.fileName || '[documento]'; }
+        else if (messageContent.locationMessage) { tipo = 'localizacao'; conteudo = '[localização]'; }
 
-          // Salva mensagem
-          await db.entities.Mensagem.create({
-            conversa_id: conversa.id,
-            direcao: 'in',
-            tipo,
-            conteudo,
-            wa_id: waId,
-            status: 'entregue',
-          });
+        if (!conteudo) conteudo = '[mensagem]';
 
-          // Atualiza conversa
-          await db.entities.Conversa.update(conversa.id, {
-            nao_lidas: (conversa.nao_lidas || 0) + 1,
+        // Contato
+        let contatos = await db.entities.Contato.filter({ telefone });
+        let contato = contatos[0];
+        if (!contato) {
+          contato = await db.entities.Contato.create({ telefone, nome: pushName || telefone, push_name: pushName });
+        } else if (pushName && !contato.push_name) {
+          await db.entities.Contato.update(contato.id, { push_name: pushName, nome: contato.nome || pushName });
+        }
+
+        // Conversa
+        const conversas = await db.entities.Conversa.filter({ contato_id: contato.id });
+        let conversa = conversas.find(c => ['aguardando', 'em_atendimento'].includes(c.status));
+        if (!conversa) {
+          conversa = await db.entities.Conversa.create({
+            contato_id: contato.id,
+            contato_nome: contato.nome || pushName || telefone,
+            contato_telefone: telefone,
+            status: 'aguardando',
+            nao_lidas: 0,
             ultima_msg: conteudo,
             ultima_em: new Date().toISOString(),
           });
         }
+
+        // Mensagem
+        await db.entities.Mensagem.create({
+          conversa_id: conversa.id,
+          direcao: 'in',
+          tipo,
+          conteudo,
+          wa_id: waId,
+          status: 'entregue',
+        });
+
+        // Atualiza conversa
+        await db.entities.Conversa.update(conversa.id, {
+          nao_lidas: (conversa.nao_lidas || 0) + 1,
+          ultima_msg: conteudo,
+          ultima_em: new Date().toISOString(),
+        });
       }
 
-      if (event === 'Receipt' || event === 'message.receipt.update') {
-        const messageIds = data?.MessageIDs || data?.messageIds || [];
-        const state = data?.state || data?.status || '';
-        const novoStatus = state === 'Read' || state === 'READ' ? 'lido' : 'entregue';
+      // === EVENTO: Status de mensagem ===
+      if (event === 'message.update' || event === 'message.receipt.update') {
+        const messageIds = data?.messages || data?.messageIds || [];
+        const statusMap = { 'RECEIVED': 'entregue', 'READ': 'lido', 'PLAYED': 'lido' };
+        const novoStatus = statusMap[data?.status] || data?.state || 'entregue';
+
         for (const waId of messageIds) {
           const msgs = await db.entities.Mensagem.filter({ wa_id: waId });
           for (const m of msgs) {
@@ -93,9 +99,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      // === Eventos de conexão Evolution Go ===
-      if (event === 'QRCode' || event === 'qrcode') {
-        const qr = data?.qrcode || data?.base64 || data?.qr || '';
+      // === EVENTO: QR Code ===
+      if (event === 'qrcode') {
+        const qr = data?.qrcode || data?.base64 || '';
         if (qr) {
           const statusList = await db.entities.EvolutionStatus.list();
           const s = statusList[0];
@@ -103,33 +109,26 @@ Deno.serve(async (req) => {
             await db.entities.EvolutionStatus.update(s.id, {
               qr_code: qr,
               status_conexao: 'aguardando_qr',
-              ultimo_evento: 'QRCode',
+              ultimo_evento: 'qrcode',
             });
           }
         }
       }
 
-      if (event === 'Connected' || event === 'PairSuccess') {
+      // === EVENTO: Conexão ===
+      if (event === 'connection') {
+        const statusMap = { 'OPEN': 'conectado', 'CLOSE': 'desconectado', 'CONNECTING': 'aguardando_qr' };
+        const novoStatus = statusMap[data?.status] || data?.status || 'desconectado';
         const phone = data?.phone || data?.number || '';
-        const statusList = await db.entities.EvolutionStatus.list();
-        const s = statusList[0];
-        if (s) {
-          await db.entities.EvolutionStatus.update(s.id, {
-            status_conexao: 'conectado',
-            qr_code: '',
-            phone_connected: phone,
-            ultimo_evento: event,
-          });
-        }
-      }
 
-      if (event === 'LoggedOut' || event === 'OfflineSyncCompleted') {
         const statusList = await db.entities.EvolutionStatus.list();
         const s = statusList[0];
         if (s) {
           await db.entities.EvolutionStatus.update(s.id, {
-            status_conexao: event === 'LoggedOut' ? 'desconectado' : s.status_conexao,
-            ultimo_evento: event,
+            status_conexao: novoStatus,
+            qr_code: novoStatus === 'aguardando_qr' ? s.qr_code : '',
+            phone_connected: novoStatus === 'conectado' ? phone : s.phone_connected,
+            ultimo_evento: data?.status || event,
           });
         }
       }

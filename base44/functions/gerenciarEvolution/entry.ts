@@ -88,12 +88,11 @@ Deno.serve(async (req) => {
 
     // === CONECTAR (gera QR Code) ===
     if (acao === 'conectar') {
+      const webhookBase = `${Deno.env.get('BASE44_APP_ID') ? `https://api.${Deno.env.get('BASE44_APP_ID')}.base44.dev` : 'https://api.example.com'}/functions/webhookWhatsapp`;
       const body = {
-        webhookUrl: webhookUrl || `${EVOLUTION_URL}/webhook`,
-        subscribe: ['ALL'],
-        immediate: true,
+        webhook: webhookBase,
+        events: ['QRCODE', 'MESSAGE', 'MESSAGE_UPDATE', 'CONNECTION'],
       };
-      if (phone) body.phone = phone;
 
       const resp = await fetch(`${EVOLUTION_URL}/instance/connect`, {
         method: 'POST',
@@ -103,7 +102,7 @@ Deno.serve(async (req) => {
       const ret = await resp.json().catch(() => ({}));
       if (!resp.ok) return Response.json({ error: ret?.message || ret?.error || 'Erro ao conectar' }, { status: 400 });
 
-      // Se vier QR code na resposta, atualiza
+      // Atualiza status
       const qr = ret.qrcode || ret.base64 || ret.qr || null;
       await db.entities.EvolutionStatus.update(statusRec.id, {
         status_conexao: qr ? 'aguardando_qr' : 'desconectado',
@@ -115,7 +114,7 @@ Deno.serve(async (req) => {
         ok: true,
         qrcode: qr,
         pairingCode: ret.pairingCode || null,
-        message: qr ? 'QR Code gerado. Escaneie com o WhatsApp.' : 'Aguardando QR Code via webhook...',
+        message: qr ? 'QR Code gerado. Escaneie com o WhatsApp.' : 'Aguardando QR Code...',
       });
     }
 
