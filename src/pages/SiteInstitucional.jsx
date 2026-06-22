@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Wifi, Zap, Star, Phone, Mail, MapPin, Download, Film, Gamepad2,
   Music, Signal, ArrowRight, CheckCircle2, Gift, Menu, X, Users

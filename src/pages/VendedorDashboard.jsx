@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import {
   TrendingUp, DollarSign, Target, ShoppingCart, CheckCircle2, Clock,
-  Plus, Trophy, Zap, Star, AlertCircle, ChevronRight, X
+  Plus, Trophy, Zap
 } from "lucide-react";
 import PainelComissoes from "@/components/vendedor/PainelComissoes";
 import { cn } from "@/lib/utils";

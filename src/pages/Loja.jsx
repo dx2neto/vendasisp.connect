@@ -4,9 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Check, Zap, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ShoppingCart, Check } from "lucide-react";
 import { Toaster, toast } from "sonner";
 
 export default function Loja() {

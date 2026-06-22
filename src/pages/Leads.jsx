@@ -9,7 +9,7 @@ import { Plus, Search, Phone, Mail, FileText, Download, Loader2 } from "lucide-r
 import LeadForm from "@/components/leads/LeadForm";
 import HistoricoNotas from "@/components/leads/HistoricoNotas";
 import BotaoSerasa from "@/components/leads/BotaoSerasa";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ETAPA_COLORS = {

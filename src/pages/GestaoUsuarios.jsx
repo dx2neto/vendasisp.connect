@@ -6,9 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import {
-  Users, Shield, UserCheck, Briefcase, Plus, Pencil, Search, Check,
-  X, Mail, Clock, Eye, ToggleLeft, ToggleRight, UserPlus, Lock,
-  ChevronRight, BarChart3, AlertTriangle, CheckCircle, Ban, RefreshCw
+  Users, Shield, UserCheck, Briefcase, Pencil, Search, Check,
+  X, Eye, UserPlus, Lock, BarChart3, AlertTriangle, CheckCircle, Ban, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/lib/usePermissions";

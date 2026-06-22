@@ -7,13 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DollarSign, ShoppingCart, Users, TrendingUp, Award, Copy, CheckCircle,
-  Plus, Zap, BarChart3, ChevronRight
+  Plus, Zap, BarChart3
 } from "lucide-react";
-import { Badge as BadgeUI } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";

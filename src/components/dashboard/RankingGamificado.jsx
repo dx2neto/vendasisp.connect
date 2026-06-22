@@ -1,8 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
-import { Trophy, TrendingUp, Star, Zap, Crown, Medal, Award } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Trophy, Crown, Medal, Award } from "lucide-react";
 
 const MEDALHAS = [
   { bg: "from-amber-400 to-yellow-500", shadow: "shadow-amber-200", text: "text-amber-700", border: "border-amber-300", icon: Crown, label: "1º", ring: "ring-4 ring-amber-300" },

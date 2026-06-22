@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import { Badge } from "@/components/ui/badge";
 
 const VARIAVEIS = {
   "Cliente": [

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { RefreshCw, Building2, Users, Wifi, Package, ClipboardList, FolderOpen, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { RefreshCw, Building2, Users, Wifi, ClipboardList, FolderOpen, CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 function SelectableList({ items, labelKey, idKey, onSelect, selected, placeholder }) {

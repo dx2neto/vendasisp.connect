@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, ChevronRight, FileText, Download, Loader2 } from "lucide-react";
+import { Plus, Search, FileText, Loader2 } from "lucide-react";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 import HistoricoEndereco from "@/components/pedidos/HistoricoEndereco";
 

@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { User, CheckCircle2, Zap, Sparkles, Flame, Clock, Filter, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { differenceInHours, differenceInDays } from "date-fns";
+import { differenceInHours } from "date-fns";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

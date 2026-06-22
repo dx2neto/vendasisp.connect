@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ROLES } from "@/pages/GestaoUsuarios";
-import { Pencil, Check, Shield, Ban, CheckCircle } from "lucide-react";
+import { Pencil, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function EditarUsuarioModal({ user: editUser, gerentes, onClose }) {

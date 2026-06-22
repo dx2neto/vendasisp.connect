@@ -5,14 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  DollarSign, TrendingUp, TrendingDown, Clock, CheckCircle2,
-  AlertCircle, Zap, BarChart3, ArrowUpRight, Wallet, Loader2, FileSignature
+  DollarSign, TrendingUp, Clock, CheckCircle2, Zap, BarChart3, ArrowUpRight, Wallet, Loader2, FileSignature
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend
 } from "recharts";
 import PainelContratosIXC from "@/components/financeiro/PainelContratosIXC";
 

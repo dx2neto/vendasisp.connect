@@ -2,9 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  Wifi, Users, Monitor, Gamepad2, Video, Music, ChevronRight, ChevronLeft,
+  Wifi, ChevronRight, ChevronLeft,
   CheckCircle, Star, Zap, Share2, RotateCcw
 } from "lucide-react";
 

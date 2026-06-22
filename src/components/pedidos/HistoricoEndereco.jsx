@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MapPin, AlertTriangle, Users, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, MapPin, AlertTriangle, Users, CheckCircle2 } from "lucide-react";
 
 export default function HistoricoEndereco({ cep, numero, rua }) {
   const [ativado, setAtivado] = useState(false);

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Target, TrendingUp, Flame, CheckCircle2, Clock } from "lucide-react";
+import { Target, CheckCircle2, Clock } from "lucide-react";
 
 const NIVEIS = [
   { min: 100, label: "🏆 Meta Batida!", color: "text-emerald-600", bg: "bg-emerald-500" },
