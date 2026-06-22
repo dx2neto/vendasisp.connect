@@ -23,6 +23,7 @@ const menuItems = [
   { label: "Financeiro",    icon: Landmark,          path: "/financeiro",    roles: ["admin"] },
   { label: "Comissões",     icon: DollarSign,        path: "/comissoes",     roles: ["admin","gerente","vendedor","revendedor"] },
   { label: "Contratos",     icon: FileText,          path: "/contratos",     roles: ["admin","gerente","vendedor"] },
+  { label: "Config. Contratos", icon: FileText,      path: "/config-contratos", roles: ["admin","gerente"] },
   { label: "Revendedor",    icon: Briefcase,         path: "/revendedor",    roles: ["admin","gerente"] },
   { label: "Usuários",      icon: UserCog,           path: "/usuarios",      roles: ["admin"] },
   { label: "Roleta Prêmios",icon: Gift,              path: "/roleta-config", roles: ["admin"] },

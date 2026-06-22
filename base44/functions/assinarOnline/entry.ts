@@ -23,7 +23,13 @@ function gerarHtmlContrato(conteudo) {
 }
 
 function preencherVariaveis(conteudo, vars) {
-  return conteudo.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || '');
+  const mapa = {};
+  Object.entries(vars || {}).forEach(([k, v]) => { mapa[String(k).toLowerCase()] = v == null ? '' : String(v); });
+  const get = (k) => (mapa[String(k).toLowerCase()] != null ? mapa[String(k).toLowerCase()] : '');
+  return String(conteudo || '')
+    .replace(/#([a-zA-Z0-9_]+)#/g, (_, k) => get(k))
+    .replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k) => get(k))
+    .replace(/\{\s*([a-zA-Z0-9_]+)\s*\}/g, (_, k) => get(k));
 }
 
 Deno.serve(async (req) => {
@@ -103,6 +109,22 @@ Deno.serve(async (req) => {
       data_hoje: now.toLocaleDateString('pt-BR'),
       data_extenso: now.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }),
       cidade_contrato: dados.end_instalacao_cidade || endereco.cidade,
+      // aliases p/ os modelos do IXC (#variavel#)
+      cliente_razao: endereco.nome,
+      cliente_cnpj_cpf: dados.cpf || '',
+      cliente_rg_ie: dados.rg || '',
+      cliente_celular: endereco.telefone || '',
+      cliente_fone: endereco.telefone || '',
+      cliente_numero: dados.end_instalacao_numero || endereco.numero || '',
+      cliente_complemento: dados.end_instalacao_complemento || '',
+      tipo_de_conexao: 'Fibra',
+      contrato_endereco: dados.end_instalacao_rua || endereco.endereco || '',
+      contrato_endereco_numero: dados.end_instalacao_numero || endereco.numero || '',
+      contrato_bairro: dados.end_instalacao_bairro || endereco.bairro || '',
+      contrato_cidade: dados.end_instalacao_cidade || endereco.cidade || '',
+      contrato_uf: endereco.uf || '',
+      contrato_cep: dados.end_instalacao_cep || endereco.cep || '',
+      contrato_data_ativacao_renovacao_extenso: now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
     };
 
     const conteudoPreenchido = preencherVariaveis(template.conteudo, vars);

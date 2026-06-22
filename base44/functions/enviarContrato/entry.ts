@@ -1,23 +1,51 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Converte HTML simples em PDF base64 via html-pdf-node (fallback: usa jsPDF-like approach com texto puro)
+// Converte o HTML do modelo (inclusive os modelos do IXC, cheios de entidades
+// como &ccedil; &atilde; &ordm;) em texto limpo para o PDF.
+function decodeEntidades(s) {
+  const M = {
+    nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", ordm: 'º', ordf: 'ª',
+    aacute: 'á', acirc: 'â', atilde: 'ã', agrave: 'à', auml: 'ä',
+    eacute: 'é', ecirc: 'ê', egrave: 'è', euml: 'ë',
+    iacute: 'í', icirc: 'î', iuml: 'ï',
+    oacute: 'ó', ocirc: 'ô', otilde: 'õ', ograve: 'ò', ouml: 'ö',
+    uacute: 'ú', ucirc: 'û', uuml: 'ü', ugrave: 'ù',
+    ccedil: 'ç', ntilde: 'ñ',
+    Aacute: 'Á', Acirc: 'Â', Atilde: 'Ã', Agrave: 'À',
+    Eacute: 'É', Ecirc: 'Ê', Iacute: 'Í', Oacute: 'Ó', Ocirc: 'Ô', Otilde: 'Õ',
+    Uacute: 'Ú', Ccedil: 'Ç',
+    copy: '©', reg: '®', deg: '°', hellip: '...', mdash: '-', ndash: '-',
+    laquo: '«', raquo: '»', sect: '§', middot: '·', bull: '-',
+  };
+  return String(s || '')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&([a-zA-Z]+);/g, (m, name) => (M[name] != null ? M[name] : m));
+}
+
 async function htmlParaPdfBase64(html) {
-  // Estratégia: usa a API de PDF do ZapSign com base64 de HTML convertido manualmente
-  // Remove tags HTML e formata como texto puro para o PDF
-  const textoLimpo = html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<\/h[1-6]>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .trim();
-  return textoLimpo;
+  let s = String(html || '').replace(/\r\n?/g, '\n');
+  s = s.replace(/<style[\s\S]*?<\/style>/gi, '')
+       .replace(/<script[\s\S]*?<\/script>/gi, '')
+       .replace(/<img[^>]*>/gi, '');
+  // quebras a partir de blocos
+  s = s.replace(/<\s*br\s*\/?>/gi, '\n')
+       .replace(/<\/\s*(p|div|h[1-6]|li|tr|table|thead|tbody)\s*>/gi, '\n')
+       .replace(/<\s*(p|div|h[1-6]|li|tr)[^>]*>/gi, '\n');
+  // separadores de célula
+  s = s.replace(/<\/\s*(td|th)\s*>/gi, ' | ');
+  // remove o resto das tags
+  s = s.replace(/<[^>]+>/g, '');
+  // entidades
+  s = decodeEntidades(s);
+  // normaliza espaços/linhas
+  s = s.replace(/[ \t]+\|\s*$/gm, '')
+       .replace(/[ \t]{2,}/g, ' ')
+       .replace(/[ \t]+\n/g, '\n')
+       .replace(/\n[ \t]+/g, '\n')
+       .replace(/\n{3,}/g, '\n\n')
+       .replace(/^\s+|\s+$/g, '');
+  return s;
 }
 
 // Gera PDF simples usando jsPDF via npm
@@ -46,6 +74,73 @@ async function gerarPdfBase64(conteudo) {
   return doc.output('datauristring').split(',')[1];
 }
 
+// --- Variáveis #...# do IXC preenchidas com os dados reais do CRM ---
+const _dig = (v) => (v ? String(v).replace(/\D/g, '') : '');
+function _fmtDoc(v) { const d = _dig(v); if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'); return v || ''; }
+function _fmtCep(v) { const d = _dig(v); return d.length === 8 ? d.replace(/(\d{5})(\d{3})/, '$1-$2') : (v || ''); }
+function _fmtFone(v) { const d = _dig(v).replace(/^55/, ''); if (d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3'); if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3'); return v || ''; }
+function _dataExtenso(d = new Date()) { const M = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']; const D = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']; return `${D[d.getDay()]}, ${d.getDate()} de ${M[d.getMonth()]} de ${d.getFullYear()}`; }
+
+function montarVarsIXC(lead, pedido, plano) {
+  lead = lead || {}; pedido = pedido || {}; plano = plano || {};
+  const doc = lead.cnpj_cpf || pedido.lead_cpf || '';
+  const cidade = lead.cidade_nome || lead.cidade || '';
+  const uf = lead.uf || '';
+  const tel = lead.telefone || '';
+  const valor = pedido.valor != null ? pedido.valor : (plano.preco_mensal || 0);
+  const brl = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  return {
+    cliente_razao: lead.nome || pedido.lead_nome || '',
+    cliente_fantasia: lead.fantasia || '',
+    cliente_cnpj_cpf: _fmtDoc(doc),
+    cliente_rg_ie: lead.rg || lead.ie || '',
+    cliente_inscricao_municipal: lead.inscricao_municipal || '',
+    cliente_endereco: lead.rua || lead.endereco || '',
+    cliente_numero: lead.numero || '',
+    cliente_complemento: lead.complemento || '',
+    cliente_cep: _fmtCep(lead.cep),
+    cliente_bairro: lead.bairro || '',
+    cliente_cidade: cidade,
+    cliente_uf: uf,
+    cliente_celular: _fmtFone(tel),
+    cliente_fone: _fmtFone(lead.telefone_fixo || tel),
+    cliente_fone_comercial: _fmtFone(lead.telefone_comercial || ''),
+    cliente_email: lead.email || '',
+    cliente_nome_representante_1: lead.representante_nome || '',
+    cliente_cpf_representante_1: _fmtDoc(lead.representante_cpf || ''),
+    cliente_identidade_representante_1: lead.representante_rg || '',
+    contrato_endereco: lead.rua || lead.endereco || '',
+    contrato_endereco_numero: lead.numero || '',
+    contrato_complemento: lead.complemento || '',
+    contrato_cep: _fmtCep(lead.cep),
+    contrato_bairro: lead.bairro || '',
+    contrato_cidade: cidade,
+    contrato_uf: uf,
+    contrato_data_ativacao_renovacao_extenso: _dataExtenso(),
+    contrato_grade_comodato_sem_val: '',
+    tipo_de_conexao: plano.tipo_conexao || 'Fibra',
+    plano_nome: plano.nome || pedido.plano_nome || '',
+    plano_velocidade: plano.velocidade_mbps ? `${plano.velocidade_mbps} Mbps` : '',
+    valor: brl(valor), plano_valor: brl(valor), valor_mensal: brl(valor),
+    fidelidade: pedido.fidelidade || '12 meses',
+    vencimento_dia: pedido.vencimento_dia || pedido.vencimento || '',
+    vendedor_nome: pedido.vendedor_nome || '',
+    data_contrato: new Date().toLocaleDateString('pt-BR'),
+    data_hoje: new Date().toLocaleDateString('pt-BR'),
+    data_extenso: _dataExtenso(),
+    cidade_contrato: cidade,
+  };
+}
+
+function aplicarVars(txt, vars) {
+  if (!txt) return '';
+  const get = (k) => { const key = String(k).toLowerCase(); return vars[key] != null ? String(vars[key]) : ''; };
+  return String(txt)
+    .replace(/#([a-zA-Z0-9_]+)#/g, (_, k) => get(k))
+    .replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k) => get(k))
+    .replace(/\{\s*([a-zA-Z0-9_]+)\s*\}/g, (_, k) => get(k));
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -71,13 +166,33 @@ Deno.serve(async (req) => {
     const signerEmail = lead?.email || '';
     const signerPhone = (lead?.telefone || '').replace(/\D/g, '');
 
+    // Plano + variáveis do IXC (#...#) preenchidas com os dados reais
+    let plano = null;
+    if (pedido.plano_id) {
+      plano = await base44.asServiceRole.entities.Plano.get(pedido.plano_id).catch(() => null);
+    }
+    const varsIXC = montarVarsIXC(lead, pedido, plano);
+
+    // Resolve o conteúdo: usa o que veio do front; se vazio, usa os modelos
+    // vinculados ao plano (template_ids). Em ambos os casos, preenche as variáveis.
+    let conteudoFinal = conteudo_contrato || '';
+    if (!conteudoFinal && plano && Array.isArray(plano.template_ids) && plano.template_ids.length) {
+      const partes = [];
+      for (const tid of plano.template_ids) {
+        const tpl = await base44.asServiceRole.entities.TemplateContrato.get(tid).catch(() => null);
+        if (tpl?.conteudo) partes.push(tpl.conteudo);
+      }
+      conteudoFinal = partes.join('\n\n<hr/>\n\n');
+    }
+    if (conteudoFinal) conteudoFinal = aplicarVars(conteudoFinal, varsIXC);
+
     // --- Monta o body do ZapSign ---
     let zapBody;
 
-    if (conteudo_contrato && !template_pdf_url) {
+    if (conteudoFinal && !template_pdf_url) {
       // Gera PDF a partir do conteúdo do template e envia como base64
       console.log('Gerando PDF a partir do conteúdo do template...');
-      const pdfBase64 = await gerarPdfBase64(conteudo_contrato);
+      const pdfBase64 = await gerarPdfBase64(conteudoFinal);
 
       zapBody = {
         name: `Contrato - ${signerName}`,

@@ -29,6 +29,7 @@ import Analytics from "@/pages/Analytics";
 import MetasVendas from "@/pages/MetasVendas";
 import DesempenhoMensal from "@/pages/DesempenhoMensal";
 import TemplatesContrato from "@/pages/TemplatesContrato.jsx";
+import ConfiguracaoContratos from "@/pages/ConfiguracaoContratos.jsx";
 import Loja from "@/pages/Loja";
 import Assinatura from "@/pages/Assinatura";
 import Roleta from "@/pages/Roleta";
@@ -90,6 +91,7 @@ const AuthenticatedApp = () => {
           <Route path="/metas" element={<MetasVendas />} />
           <Route path="/desempenho" element={<DesempenhoMensal />} />
           <Route path="/templates-contrato" element={<TemplatesContrato />} />
+          <Route path="/config-contratos" element={<ConfiguracaoContratos />} />
           <Route path="/roleta-config" element={<ConfigRoleta />} />
           <Route path="/financeiro" element={<FinanceiroDashboard />} />
           <Route path="/usuarios" element={<GestaoUsuarios />} />

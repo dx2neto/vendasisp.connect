@@ -162,22 +162,33 @@ Deno.serve(async (req) => {
         // O IXC usa {campo} — convertemos para {{campo}}
         const conteudoRaw = modelo.conteudo || modelo.texto || modelo.descricao || `Contrato: ${modelo.nome}`;
 
-        // Remove tags HTML e normaliza
-        const conteudoTexto = conteudoRaw
-          .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/<\/p>/gi, '\n')
-          .replace(/<[^>]+>/g, '')
-          .replace(/&nbsp;/g, ' ')
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .trim();
+        // Remove tags HTML e normaliza, decodificando entidades PT-BR e separando células
+        const decodeEnt = (str) => {
+          const M = { nbsp:' ', amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", ordm:'º', ordf:'ª',
+            aacute:'á', acirc:'â', atilde:'ã', agrave:'à', eacute:'é', ecirc:'ê', iacute:'í',
+            oacute:'ó', ocirc:'ô', otilde:'õ', uacute:'ú', ucirc:'û', ccedil:'ç',
+            Aacute:'Á', Atilde:'Ã', Eacute:'É', Iacute:'Í', Oacute:'Ó', Otilde:'Õ', Uacute:'Ú', Ccedil:'Ç',
+            deg:'°', hellip:'...', mdash:'-', ndash:'-', bull:'-', sect:'§' };
+          return String(str||'')
+            .replace(/&#(\d+);/g, (_,n)=>String.fromCharCode(Number(n)))
+            .replace(/&#x([0-9a-fA-F]+);/g, (_,n)=>String.fromCharCode(parseInt(n,16)))
+            .replace(/&([a-zA-Z]+);/g, (m,nm)=>(M[nm]!=null?M[nm]:m));
+        };
+        const conteudoTexto = decodeEnt(
+          conteudoRaw
+            .replace(/\r\n?/g, '\n')
+            .replace(/<\s*br\s*\/?>/gi, '\n')
+            .replace(/<\/\s*(p|div|h[1-6]|li|tr|table)\s*>/gi, '\n')
+            .replace(/<\s*(p|div|h[1-6]|li|tr)[^>]*>/gi, '\n')
+            .replace(/<\/\s*(td|th)\s*>/gi, ' | ')
+            .replace(/<[^>]+>/g, '')
+        ).replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 
         // Converte variáveis: {campo} → {{campo}}
         const conteudo = conteudoTexto
           .replace(/\{([a-zA-Z_0-9]+)\}/g, '{{$1}}')
           .replace(/\[([a-zA-Z_\s]+)\]/g, (m, v) => `{{${v.trim().toLowerCase().replace(/\s+/g, '_')}}}`)
-          .slice(0, 8000); // Limita a 8KB — conteúdos maiores devem ser editados no CRM após importação
+          .slice(0, 60000);
 
         // Extrai variáveis
         const variaveis = [...new Set(
@@ -193,6 +204,7 @@ Deno.serve(async (req) => {
             conteudo,
             variaveis_obrigatorias: variaveis,
             id_modelo_ixc: String(modelo.id),
+            tipo_modelo: modelo.tipo || modelo.tipo_modelo || existente.tipo_modelo || '',
           });
           atualizados.push({ nome: existente.nome, id_ixc: modelo.id });
         } else {
@@ -204,6 +216,7 @@ Deno.serve(async (req) => {
             variaveis_obrigatorias: variaveis,
             ativo: true,
             id_modelo_ixc: String(modelo.id),
+            tipo_modelo: modelo.tipo || modelo.tipo_modelo || '',
           });
           criados.push({ nome: modelo.nome, id_ixc: modelo.id });
         }

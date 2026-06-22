@@ -20,6 +20,13 @@
     "id_produto_ixc": {
       "type": "string"
     },
+    "template_ids": {
+      "type": "array",
+      "description": "IDs dos modelos de contrato (TemplateContrato) vinculados a este plano, na ordem de assinatura",
+      "items": {
+        "type": "string"
+      }
+    },
     "ativo": {
       "type": "boolean",
       "default": true

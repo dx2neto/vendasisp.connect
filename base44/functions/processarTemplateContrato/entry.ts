@@ -15,18 +15,23 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Template não encontrado' }, { status: 404 });
     }
 
-    // Processa o conteúdo substituindo variáveis
-    let conteudoProcessado = template.conteudo;
-    
-    Object.entries(variaveis).forEach(([chave, valor]) => {
-      const regex = new RegExp(`\\{\\{${chave}\\}\\}`, 'g');
-      conteudoProcessado = conteudoProcessado.replace(regex, String(valor || ''));
-    });
+    // Processa o conteúdo substituindo variáveis.
+    // Suporta {{chave}} (legado), #chave# (modelos do IXC) e {chave}. Sem distinção de maiúsc./minúsc.
+    let conteudoProcessado = template.conteudo || '';
 
-    // Verifica variáveis não substituídas
-    const variaveisNaoSubstituidas = (conteudoProcessado.match(/\{\{(\w+)\}\}/g) || []).map(v =>
-      v.replace(/\{\{|\}\}/g, '')
-    );
+    const mapa = {};
+    Object.entries(variaveis).forEach(([k, v]) => { mapa[String(k).toLowerCase()] = String(v ?? ''); });
+    const valor = (k) => (mapa[String(k).toLowerCase()] != null ? mapa[String(k).toLowerCase()] : '');
+
+    conteudoProcessado = conteudoProcessado
+      .replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k) => valor(k))
+      .replace(/#([a-zA-Z0-9_]+)#/g, (_, k) => valor(k))
+      .replace(/\{\s*([a-zA-Z0-9_]+)\s*\}/g, (_, k) => valor(k));
+
+    // Verifica variáveis não substituídas (qualquer um dos formatos)
+    const variaveisNaoSubstituidas = (
+      conteudoProcessado.match(/\{\{(\w+)\}\}|#(\w+)#/g) || []
+    ).map((v) => v.replace(/[{}#]/g, ''));
 
     return Response.json({
       success: true,
