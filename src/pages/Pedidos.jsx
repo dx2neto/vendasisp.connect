@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Label } from "@/components/ui/label";
 import { Plus, Search, ChevronRight } from "lucide-react";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
+import HistoricoEndereco from "@/components/pedidos/HistoricoEndereco";
 
 const STATUS_LABELS = {
   novo: "Novo", analise_credito: "Crédito", viabilidade: "Viabilidade",
@@ -229,6 +230,18 @@ export default function Pedidos() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Histórico de clientes no mesmo endereço (IXC) */}
+            {form.lead_id && (() => {
+              const leadSel = leads.find(l => l.id === form.lead_id);
+              if (!leadSel?.cep) return null;
+              return (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/30 p-3">
+                  <p className="text-xs font-medium text-amber-700 mb-2">Análise de Risco de Endereço</p>
+                  <HistoricoEndereco cep={leadSel.cep} numero={leadSel.numero} rua={leadSel.rua} />
+                </div>
+              );
+            })()}
+
             <div className="flex justify-end">
               <Button onClick={handleCreate} disabled={!form.lead_id || createMutation.isPending} className="rounded-xl">
                 {createMutation.isPending ? "Criando..." : "Criar Pedido"}
