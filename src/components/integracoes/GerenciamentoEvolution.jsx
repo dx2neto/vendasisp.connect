@@ -17,25 +17,25 @@ import { cn } from "@/lib/utils";
 // EVOLUTION GO — Gestão de conexão do serviço externo
 //
 // Este componente fala o dialeto do EVOLUTION GO (não o Evolution API clássico):
-//   • POST /instance/create  { instanceName, integration: "WHATSAPP-BAILEYS" }
+//   • POST /instance/create  { name, token, proxy? }
 //   • POST /instance/connect { webhookUrl, subscribe: [...], immediate: true, phone? }
-//   • Headers: apikey (GLOBAL_API_KEY) + instanceId (UUID)
-//   • Eventos de webhook em PascalCase: Message, Connected, QRCode, Disconnected...
-//   • QR Code chega via webhook (campo qrcode em base64), não na resposta do connect
+//   • Header: apikey (chave global ou token específico da instância)
+//   • Eventos assinados: MESSAGE, CONNECTION, QRCODE, READ_RECEIPT, PRESENCE...
+//   • QR Code: GET /instance/qr -> data.Qrcode
 //
 // ────────────────────────────────────────────────────────────────────────
 // CONTRATO QUE O BACKEND PRECISA CUMPRIR (base44.functions.invoke):
 //
 //   "gerenciarEvolution" recebe { acao, ...params } e repassa pro Evolution Go:
 //     acao: "criar"       -> POST /instance/create
-//                            body: { instanceName, integration }
+//                            body: { name, token, proxy? }
 //                            retorna: { ok, instanceId, token, status }
 //     acao: "conectar"    -> POST /instance/connect
 //                            body: { webhookUrl, subscribe, immediate, phone? }
 //                            retorna: { ok, qrcode?, status }
-//     acao: "desconectar" -> POST /instance/logout  (ou /instance/disconnect)
+//     acao: "desconectar" -> POST /instance/disconnect
 //                            retorna: { ok }
-//     acao: "status"      -> GET  /instance/connectionState (opcional)
+//     acao: "status"      -> GET /instance/all
 //
 //   O backend lê os secrets EVOLUTION_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE_ID
 //   e injeta os headers apikey + instanceId. O front NUNCA toca na api_key.
@@ -49,12 +49,11 @@ import { cn } from "@/lib/utils";
 
 // Eventos do Evolution Go que fazem sentido assinar para uma central de atendimento.
 const EVENTOS_DISPONIVEIS = [
-  { key: "Message",      label: "Mensagens recebidas",   desc: "Cada mensagem que chega no número", padrao: true },
-  { key: "Connected",    label: "Conexão estabelecida",  desc: "Número conectou com sucesso",       padrao: true },
-  { key: "Disconnected", label: "Desconexão",            desc: "Número caiu ou foi desconectado",   padrao: true },
-  { key: "QRCode",       label: "QR Code",               desc: "Novo QR gerado para parear",        padrao: true },
-  { key: "ReadReceipt",  label: "Confirmações de leitura", desc: "Status entregue / lido",          padrao: false },
-  { key: "Presence",     label: "Presença",              desc: "Digitando, online, etc.",           padrao: false },
+  { key: "MESSAGE",      label: "Mensagens recebidas",   desc: "Cada mensagem que chega no número", padrao: true },
+  { key: "CONNECTION",   label: "Conexão",               desc: "Conexão e desconexão do número",    padrao: true },
+  { key: "QRCODE",       label: "QR Code",               desc: "Novo QR gerado para parear",        padrao: true },
+  { key: "READ_RECEIPT", label: "Confirmações de leitura", desc: "Status entregue / lido",          padrao: false },
+  { key: "PRESENCE",     label: "Presença",              desc: "Digitando, online, etc.",           padrao: false },
 ];
 
 function StatusDot({ on, pulse }) {
@@ -150,7 +149,7 @@ export default function GerenciamentoEvolution() {
       const res = await base44.functions.invoke("gerenciarEvolution", {
         acao: "conectar",
         webhookUrl,
-        subscribe: eventos,          // Evolution Go: lista de eventos PascalCase
+        subscribe: eventos,
         immediate: true,
         phone: phone.trim() || undefined,  // se informado, usa pairing code
       });
