@@ -1,25 +1,77 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, QrCode, RefreshCw, Power, PowerOff, Smartphone, Wifi, WifiOff, Copy, CheckCircle2 } from "lucide-react";
+import {
+  Loader2, QrCode, RefreshCw, Power, PowerOff, Smartphone, Wifi, WifiOff,
+  Copy, CheckCircle2, Server, KeyRound, Plug, AlertTriangle, ExternalLink,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+/**
+ * Gestão de conexão do Evolution Go.
+ *
+ * Diferente do Evolution API clássico, o Evolution Go usa:
+ *   - POST {base_url}/instance/create   body: { instanceName, integration: "WHATSAPP-BAILEYS" }
+ *   - POST {base_url}/instance/connect  body: { webhookUrl, subscribe:["ALL"], immediate:true, phone? }
+ *   - headers: apikey (GLOBAL_API_KEY), instanceId (UUID), Content-Type: application/json
+ *   - eventos do webhook em PascalCase: "Message", "Connected", "QRCode", "Disconnected"...
+ *
+ * Este componente NÃO chama o Evolution Go direto do browser (a apikey não pode
+ * vazar pro cliente). Ele conversa com a backend function `gerenciarEvolution`,
+ * que deve repassar a ação ao servidor Evolution Go usando os secrets:
+ *   EVOLUTION_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE_ID.
+ *
+ * Ações esperadas pela function (acao):
+ *   "status"      -> consulta o estado da instância no servidor
+ *   "criar"       -> cria instância { instanceName }
+ *   "conectar"    -> connect { webhookUrl, phone? } e devolve { qrcode? }
+ *   "desconectar" -> logout da instância
+ *   "reiniciar"   -> restart da instância (opcional)
+ */
+
+const CONEXAO = {
+  conectado:     { label: "Conectado",     dot: "bg-emerald-500",            chip: "bg-emerald-50 text-emerald-600 border-emerald-200", box: "bg-emerald-500" },
+  aguardando_qr: { label: "Aguardando QR", dot: "bg-amber-500 animate-pulse", chip: "bg-amber-50 text-amber-600 border-amber-200",       box: "bg-amber-500" },
+  conectando:    { label: "Conectando",    dot: "bg-blue-500 animate-pulse",  chip: "bg-blue-50 text-blue-600 border-blue-200",          box: "bg-blue-500" },
+  desconectado:  { label: "Desconectado",  dot: "bg-slate-400",               chip: "bg-slate-50 text-slate-500 border-slate-200",       box: "bg-slate-400" },
+};
+
+function CampoCopiavel({ label, value, mono = true }) {
+  const [copied, setCopied] = useState(false);
+  const copiar = () => {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("Copiado para a área de transferência");
+  };
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <div className="flex gap-2">
+        <Input value={value || ""} readOnly className={cn("bg-muted/30", mono && "font-mono text-xs")} />
+        <Button variant="outline" size="sm" onClick={copiar} disabled={!value} className="gap-1.5 flex-shrink-0">
+          {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+          Copiar
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function GerenciamentoEvolution() {
   const qc = useQueryClient();
   const [instanceName, setInstanceName] = useState("netveloce-atendimento");
   const [phone, setPhone] = useState("");
-  const [qrLoading, setQrLoading] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(null); // "criar" | "conectar" | "desconectar" | "reiniciar"
 
-  // Busca status local (EvolutionStatus entity)
+  // Estado persistido localmente (entidade EvolutionStatus, atualizada pelo webhook)
   const { data: statusList = [] } = useQuery({
     queryKey: ["evolutionStatus"],
     queryFn: () => base44.entities.EvolutionStatus.list("-updated_date", 1),
@@ -27,9 +79,9 @@ export default function GerenciamentoEvolution() {
   });
   const status = statusList[0] || {};
 
-  // Busca status da instância no Evolution
-  const { data: testResult, refetch: refetchTest, isFetching: testing } = useQuery({
-    queryKey: ["testEvolution"],
+  // Estado ao vivo no servidor Evolution Go (via function testarEvolution -> GET /)
+  const { data: live, refetch: refetchLive, isFetching: testing } = useQuery({
+    queryKey: ["evolutionLive"],
     queryFn: async () => {
       const res = await base44.functions.invoke("testarEvolution", {});
       return res.data;
@@ -37,220 +89,221 @@ export default function GerenciamentoEvolution() {
     refetchInterval: 15000,
   });
 
-  // URL do webhook
-  const webhookUrl = `${window.location.origin.replace("app.", "api.")}/functions/webhookWhatsapp`;
+  const conexao = status.status_conexao || (live?.connected ? "conectado" : "desconectado");
+  const cfg = CONEXAO[conexao] || CONEXAO.desconectado;
+  const isConnected = conexao === "conectado";
 
-  const handleCopyWebhook = () => {
-    navigator.clipboard.writeText(webhookUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast.success("URL copiada!");
-  };
+  // URL da function de webhook que o Evolution Go vai chamar.
+  // Em apps Base44 o domínio do app (app.*) e o de funções (api.*) divergem.
+  const webhookUrl = useMemo(
+    () => `${window.location.origin.replace("app.", "api.")}/functions/webhookWhatsapp`,
+    []
+  );
 
-  const handleCriar = async () => {
-    setCreating(true);
+  const acao = async (nome, payload = {}) => {
+    setBusy(nome);
     try {
-      const res = await base44.functions.invoke("gerenciarEvolution", { acao: "criar", instanceName });
-      if (res.data?.ok) {
-        toast.success(`Instância criada! ID: ${res.data.instanceId}`);
-      } else {
-        toast.error(res.data?.error || "Erro ao criar instância");
+      const res = await base44.functions.invoke("gerenciarEvolution", { acao: nome, ...payload });
+      const data = res.data || {};
+      if (data.ok === false) {
+        toast.error(data.error || `Falha ao executar "${nome}"`);
+        return data;
       }
+      qc.invalidateQueries({ queryKey: ["evolutionStatus"] });
+      return data;
     } catch (e) {
-      toast.error("Erro: " + e.message);
+      toast.error(`Não foi possível concluir "${nome}": ${e.message}`);
+      return { ok: false, error: e.message };
     } finally {
-      setCreating(false);
+      setBusy(null);
     }
   };
 
-  const handleConectar = async () => {
-    setConnecting(true);
-    try {
-      const res = await base44.functions.invoke("gerenciarEvolution", {
-        acao: "conectar",
-        webhookUrl,
-        phone: phone || undefined,
-      });
-      if (res.data?.ok) {
-        if (res.data.qrcode) {
-          toast.success("QR Code gerado! Escaneie com o WhatsApp.");
-        } else {
-          toast.info("Conectando... Aguarde o QR Code via webhook.");
-        }
-      } else {
-        toast.error(res.data?.error || "Erro ao conectar");
-      }
-    } catch (e) {
-      toast.error("Erro: " + e.message);
-    } finally {
-      setConnecting(false);
+  const criar = async () => {
+    if (!instanceName.trim()) return;
+    const d = await acao("criar", { instanceName: instanceName.trim() });
+    if (d?.ok) toast.success(`Instância criada${d.instanceId ? ` — ID ${d.instanceId}` : ""}. Salve o instanceId nos secrets.`);
+  };
+
+  const conectar = async () => {
+    const d = await acao("conectar", { webhookUrl, phone: phone.trim() || undefined });
+    if (d?.ok) {
+      if (d.qrcode || d.qr_code) toast.success("QR Code gerado. Escaneie no WhatsApp.");
+      else toast.info("Conexão iniciada. O QR Code chega pelo webhook em instantes.");
     }
   };
 
-  const handleDesconectar = async () => {
-    setDisconnecting(true);
-    try {
-      const res = await base44.functions.invoke("gerenciarEvolution", { acao: "desconectar" });
-      if (res.data?.ok) {
-        toast.success("Instância desconectada");
-        qc.invalidateQueries({ queryKey: ["evolutionStatus"] });
-      } else {
-        toast.error(res.data?.error || "Erro ao desconectar");
-      }
-    } catch (e) {
-      toast.error("Erro: " + e.message);
-    } finally {
-      setDisconnecting(false);
-    }
+  const desconectar = async () => {
+    const d = await acao("desconectar");
+    if (d?.ok) toast.success("WhatsApp desconectado");
   };
 
-  const isConnected = status.status_conexao === "conectado";
-  const isAwaitingQr = status.status_conexao === "aguardando_qr";
+  const qrImg = status.qr_code || status.qrcode || live?.qrcode || null;
 
   return (
     <div className="space-y-5">
-      {/* Status Card */}
-      <Card className="rounded-2xl border border-border">
+      {/* ── Cartão principal de status ── */}
+      <Card className="rounded-2xl border border-border overflow-hidden">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center text-white",
-                isConnected ? "bg-emerald-500" : isAwaitingQr ? "bg-amber-500" : "bg-slate-400"
-              )}>
+              <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center text-white", cfg.box)}>
                 {isConnected ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5" />}
               </div>
               <div>
                 <CardTitle className="text-lg">Evolution Go — WhatsApp</CardTitle>
-                <CardDescription className="text-xs">Servidor de atendimento via WhatsApp</CardDescription>
+                <CardDescription className="text-xs">Conexão do número de atendimento</CardDescription>
               </div>
             </div>
-            <Badge className={cn(
-              "text-xs font-semibold gap-1.5 py-1 px-3 rounded-full border",
-              isConnected ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
-              isAwaitingQr ? "bg-amber-50 text-amber-600 border-amber-200" :
-              "bg-slate-50 text-slate-500 border-slate-200"
-            )}>
-              <span className={cn("w-1.5 h-1.5 rounded-full",
-                isConnected ? "bg-emerald-500" : isAwaitingQr ? "bg-amber-500 animate-pulse" : "bg-slate-400"
-              )} />
-              {isConnected ? "Conectado" : isAwaitingQr ? "Aguardando QR" : "Desconectado"}
+            <Badge className={cn("text-xs font-semibold gap-1.5 py-1 px-3 rounded-full border", cfg.chip)}>
+              <span className={cn("w-1.5 h-1.5 rounded-full", cfg.dot)} />
+              {cfg.label}
             </Badge>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-4">
-          {/* Info do servidor */}
+          {/* Dados do servidor */}
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="bg-muted/40 rounded-lg px-3 py-2">
-              <p className="text-xs text-muted-foreground">Servidor</p>
-              <p className="font-medium truncate">{testResult?.url || "—"}</p>
+            <div className="bg-muted/40 rounded-lg px-3 py-2 min-w-0">
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Server className="w-3 h-3" /> Servidor</p>
+              <p className="font-medium truncate">{live?.url || "—"}</p>
             </div>
-            <div className="bg-muted/40 rounded-lg px-3 py-2">
+            <div className="bg-muted/40 rounded-lg px-3 py-2 min-w-0">
               <p className="text-xs text-muted-foreground">Instance ID</p>
-              <p className="font-medium truncate">{testResult?.instance_id || status.instance_id || "—"}</p>
+              <p className="font-medium truncate font-mono text-xs">{live?.instance_id || status.instance_id || "—"}</p>
             </div>
             {isConnected && status.phone_connected && (
               <div className="bg-emerald-50 rounded-lg px-3 py-2 col-span-2">
-                <p className="text-xs text-emerald-600 flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5" /> Número conectado
-                </p>
+                <p className="text-xs text-emerald-600 flex items-center gap-1.5"><Smartphone className="w-3.5 h-3.5" /> Número conectado</p>
                 <p className="font-medium text-emerald-700">{status.phone_connected}</p>
               </div>
             )}
           </div>
 
-          {/* QR Code Display */}
-          {status.qr_code && !isConnected && (
+          {/* QR Code */}
+          {qrImg && !isConnected && (
             <div className="flex flex-col items-center gap-3 p-4 bg-white rounded-xl border-2 border-amber-200">
-              <p className="text-sm font-medium text-amber-700">Escaneie o QR Code no WhatsApp</p>
+              <p className="text-sm font-medium text-amber-700">Escaneie para conectar</p>
               <div className="p-3 bg-white rounded-xl border">
-                <img src={status.qr_code} alt="QR Code" className="w-56 h-56" />
+                <img
+                  src={qrImg.startsWith("data:") ? qrImg : `data:image/png;base64,${qrImg}`}
+                  alt="QR Code de conexão do WhatsApp"
+                  className="w-56 h-56"
+                />
               </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Abra o WhatsApp → Configurações → Dispositivos conectados → Conectar dispositivo
+              <p className="text-xs text-muted-foreground text-center max-w-xs">
+                No celular: WhatsApp → Configurações → Dispositivos conectados → Conectar dispositivo
               </p>
             </div>
           )}
 
-          {/* Actions */}
+          {/* Ações */}
           <div className="flex flex-wrap gap-2">
             {!isConnected ? (
-              <Button onClick={handleConectar} disabled={connecting} className="gap-2 rounded-xl">
-                {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
-                {isAwaitingQr ? "Gerar novo QR" : "Conectar WhatsApp"}
+              <Button onClick={conectar} disabled={busy === "conectar"} className="gap-2 rounded-xl">
+                {busy === "conectar" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+                {conexao === "aguardando_qr" ? "Gerar novo QR" : "Conectar WhatsApp"}
               </Button>
             ) : (
-              <Button onClick={handleDesconectar} disabled={disconnecting} variant="destructive" className="gap-2 rounded-xl">
-                {disconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <PowerOff className="w-4 h-4" />}
+              <Button onClick={desconectar} disabled={busy === "desconectar"} variant="destructive" className="gap-2 rounded-xl">
+                {busy === "desconectar" ? <Loader2 className="w-4 h-4 animate-spin" /> : <PowerOff className="w-4 h-4" />}
                 Desconectar
               </Button>
             )}
-            <Button onClick={() => refetchTest()} variant="outline" className="gap-2 rounded-xl">
+            <Button onClick={() => refetchLive()} variant="outline" className="gap-2 rounded-xl">
               {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Atualizar
+              Atualizar status
             </Button>
           </div>
 
-          {/* Phone for pairing code (optional) */}
+          {/* Pairing code opcional */}
           {!isConnected && (
-            <div className="flex gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Conectar por código (opcional)</Label>
               <Input
-                placeholder="Telefone para pairing code (opcional): 5511999999999"
+                placeholder="Número com DDI: 5564999999999"
                 value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className="flex-1"
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                inputMode="numeric"
               />
+              <p className="text-[11px] text-muted-foreground">
+                Preencha para receber um código de pareamento em vez de QR. Deixe vazio para usar QR Code.
+              </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Webhook URL Card */}
+      {/* ── Webhook ── */}
       <Card className="rounded-2xl border border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-primary" />
-            URL do Webhook
-          </CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><QrCode className="w-5 h-5 text-primary" /> Webhook de eventos</CardTitle>
           <CardDescription className="text-xs">
-            Configure esta URL no Evolution Go para receber mensagens em tempo real
+            O Evolution Go envia mensagens e atualizações de conexão para esta URL (eventos
+            <code className="mx-1 px-1 rounded bg-muted text-[11px]">Message</code>,
+            <code className="mx-1 px-1 rounded bg-muted text-[11px]">Connected</code>,
+            <code className="mx-1 px-1 rounded bg-muted text-[11px]">QRCode</code>).
+            Ela já é enviada automaticamente ao conectar.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
-            <Input value={webhookUrl} readOnly className="font-mono text-xs bg-muted/30" />
-            <Button variant="outline" size="sm" onClick={handleCopyWebhook} className="gap-1.5">
-              {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-              Copiar
-            </Button>
+          <CampoCopiavel label="URL do webhook" value={webhookUrl} />
+        </CardContent>
+      </Card>
+
+      {/* ── Criar instância ── */}
+      <Card className="rounded-2xl border border-border">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2"><Plug className="w-5 h-5 text-primary" /> Criar instância</CardTitle>
+          <CardDescription className="text-xs">Use só na primeira configuração, quando ainda não há instância no servidor.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Nome da instância</Label>
+            <div className="flex gap-2">
+              <Input value={instanceName} onChange={(e) => setInstanceName(e.target.value)} className="flex-1" placeholder="ex: meu-provedor-atendimento" />
+              <Button onClick={criar} disabled={busy === "criar" || !instanceName.trim()} variant="outline" className="gap-2 flex-shrink-0">
+                {busy === "criar" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+                Criar
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>
+              Após criar, copie o <strong>instanceId</strong> retornado e salve no secret
+              <code className="mx-1 px-1 rounded bg-amber-100">EVOLUTION_INSTANCE_ID</code>.
+              Sem ele, conectar e enviar mensagens não funciona.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Create Instance Card */}
+      {/* ── Secrets necessários ── */}
       <Card className="rounded-2xl border border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Criar Nova Instância</CardTitle>
-          <CardDescription className="text-xs">
-            Crie uma nova instância no Evolution Go (use apenas se não tiver uma ainda)
-          </CardDescription>
+          <CardTitle className="text-base flex items-center gap-2"><KeyRound className="w-5 h-5 text-primary" /> Configuração do servidor</CardTitle>
+          <CardDescription className="text-xs">Defina estes secrets no app. Eles ficam só no servidor — nunca no navegador.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nome da instância"
-              value={instanceName}
-              onChange={e => setInstanceName(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={handleCriar} disabled={creating || !instanceName.trim()} variant="outline" className="gap-2">
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
-              Criar
-            </Button>
-          </div>
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-            Após criar, copie o <strong>instanceId</strong> retornado e configure no secret <code>EVOLUTION_INSTANCE_ID</code> nas configurações do app.
-          </div>
+        <CardContent className="space-y-2 text-sm">
+          {[
+            ["EVOLUTION_URL", "URL base do Evolution Go (ex: http://seu-servidor:8080)"],
+            ["EVOLUTION_API_KEY", "GLOBAL_API_KEY definida no .env do servidor"],
+            ["EVOLUTION_INSTANCE_ID", "UUID da instância (vem ao criar)"],
+          ].map(([k, desc]) => (
+            <div key={k} className="flex items-start gap-2 bg-muted/40 rounded-lg px-3 py-2">
+              <code className="text-xs font-semibold text-primary flex-shrink-0">{k}</code>
+              <span className="text-xs text-muted-foreground">— {desc}</span>
+            </div>
+          ))}
+          <a
+            href="https://docs.evolutionfoundation.com.br/evolution-go/install/postman"
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline pt-1"
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> Documentação do Evolution Go
+          </a>
         </CardContent>
       </Card>
     </div>
