@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/lib/usePermissions";
+import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,11 +29,17 @@ export default function Pedidos() {
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { filtrarPedidos } = usePermissions();
 
   const { data: pedidos = [], isLoading } = useQuery({
-    queryKey: ["pedidos"],
-    queryFn: () => base44.entities.Pedido.list("-created_date", 200),
+    queryKey: ["pedidos", user?.id],
+    queryFn: async () => {
+      const todos = await base44.entities.Pedido.list("-created_date", 200);
+      // Admin/Gerente vê tudo; vendedores veem apenas seus pedidos
+      if (user?.role === "admin" || user?.role === "gerente") return todos;
+      return todos.filter(p => p.vendedor_id === user?.id || p.vendedor_nome === user?.full_name);
+    },
   });
   const { data: leads = [] } = useQuery({
     queryKey: ["leads"],
