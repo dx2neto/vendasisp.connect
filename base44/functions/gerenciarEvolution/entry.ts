@@ -148,7 +148,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ error: 'Ação inválida. Use: status, criar, conectar, desconectar, qr' }, { status: 400 });
+    // === DELETAR INSTÂNCIA ===
+    if (acao === 'deletar') {
+      const resp = await fetch(`${EVOLUTION_URL}/instance/delete`, {
+        method: 'DELETE',
+        headers,
+      });
+      const ret = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) return Response.json({ error: ret?.message || ret?.error || 'Erro ao deletar instância' }, { status: 400 });
+
+      // Limpa dados locais
+      await db.entities.EvolutionStatus.update(statusRec.id, {
+        status_conexao: 'desconectado',
+        instance_id: '',
+        instance_name: '',
+        phone_connected: '',
+        qr_code: '',
+        ultimo_evento: 'deleted',
+      });
+
+      return Response.json({ ok: true, message: 'Instância deletada com sucesso' });
+    }
+
+    return Response.json({ error: 'Ação inválida. Use: status, criar, conectar, desconectar, qr, deletar' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
