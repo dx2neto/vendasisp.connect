@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, FileText, Zap, Loader2, CheckCircle, ExternalLink, ChevronDown, FileSearch } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { usePermissions } from "@/lib/usePermissions";
+import HistoricoEnderecoIXC from "@/components/pedidos/HistoricoEnderecoIXC";
 import TemplatePreview, { preencherVariaveis } from "@/components/templates/TemplatePreview";
 
 const STATUS_FLOW = {
@@ -154,6 +155,9 @@ export default function PedidoAcoes({ pedido, lead }) {
           Relatório de Análise (PDF)
         </Button>
       )}
+
+      {/* Histórico do cliente/endereço no IXC — gerente/admin */}
+      {(is.admin || is.gerente) && <HistoricoEnderecoIXC pedidoId={pedido.id} />}
 
       {/* Analisar Crédito */}
       {(s === "novo" || s === "analise_credito") && (
