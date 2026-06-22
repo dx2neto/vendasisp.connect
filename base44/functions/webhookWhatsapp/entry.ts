@@ -11,8 +11,9 @@ Deno.serve(async (req) => {
     try {
       const event = body.event || body.Event || body.type || '';
       const data = body.data || body.Data || body.payload || {};
+      const eventUpper = String(event).toUpperCase();
 
-      if (event === 'Message' || event === 'messages.upsert') {
+      if (eventUpper === 'MESSAGE' || event === 'messages.upsert') {
         // Suporte a formato Evolution API v2
         const msgs = data?.messages || (data ? [data] : []);
         for (const msg of msgs) {
@@ -82,7 +83,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (event === 'Receipt' || event === 'message.receipt.update') {
+      if (eventUpper === 'READ_RECEIPT' || eventUpper === 'RECEIPT' || event === 'message.receipt.update') {
         const messageIds = data?.MessageIDs || data?.messageIds || [];
         const state = data?.state || data?.status || '';
         const novoStatus = state === 'Read' || state === 'READ' ? 'lido' : 'entregue';
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
       }
 
       // === Eventos de conexão Evolution Go ===
-      if (event === 'QRCode' || event === 'qrcode') {
+      if (eventUpper === 'QRCODE') {
         const qr = data?.qrcode?.base64 || data?.qrcode || data?.base64 || data?.qr || '';
         if (qr) {
           const statusList = await db.entities.EvolutionStatus.list();
@@ -110,7 +111,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (event === 'Connected' || event === 'PairSuccess') {
+      const connectionState = String(data?.state || data?.status || '').toUpperCase();
+      const connectionUp = eventUpper === 'CONNECTED' || eventUpper === 'PAIRSUCCESS' ||
+        (eventUpper === 'CONNECTION' && (data?.connected === true || data?.Connected === true || connectionState === 'CONNECTED'));
+      if (connectionUp) {
         const phone = data?.phone || data?.number || '';
         const statusList = await db.entities.EvolutionStatus.list();
         const s = statusList[0];
@@ -124,12 +128,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (event === 'LoggedOut' || event === 'Disconnected' || event === 'OfflineSyncCompleted') {
+      const connectionDown = eventUpper === 'LOGGEDOUT' || eventUpper === 'DISCONNECTED' ||
+        (eventUpper === 'CONNECTION' && (data?.connected === false || data?.Connected === false || connectionState === 'DISCONNECTED'));
+      if (connectionDown || eventUpper === 'OFFLINESYNCCOMPLETED') {
         const statusList = await db.entities.EvolutionStatus.list();
         const s = statusList[0];
         if (s) {
           await db.entities.EvolutionStatus.update(s.id, {
-            status_conexao: event === 'OfflineSyncCompleted' ? s.status_conexao : 'desconectado',
+            status_conexao: eventUpper === 'OFFLINESYNCCOMPLETED' ? s.status_conexao : 'desconectado',
             ultimo_evento: event,
           });
         }
