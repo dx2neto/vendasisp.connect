@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, ChevronRight, FileText, Download, Loader2 } from "lucide-react";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 import HistoricoEndereco from "@/components/pedidos/HistoricoEndereco";
@@ -49,6 +50,11 @@ export default function Pedidos() {
   const { data: planos = [] } = useQuery({
     queryKey: ["planos"],
     queryFn: () => base44.entities.Plano.list(),
+  });
+
+  const { data: analisesCr = [] } = useQuery({
+    queryKey: ["analises-credito"],
+    queryFn: () => base44.entities.AnaliseCredito.list(),
   });
 
   const [form, setForm] = useState({ lead_id: "", plano_id: "" });
@@ -203,47 +209,114 @@ export default function Pedidos() {
             <SheetTitle>Pedido — {selectedPedido?.lead_nome}</SheetTitle>
           </SheetHeader>
           {selectedPedido && (
-            <div className="mt-6 space-y-5">
-              {/* Resumo */}
-              <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">CPF/CNPJ</span><span className="font-mono">{selectedPedido.lead_cpf || "—"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Plano</span><span>{selectedPedido.plano_nome || "—"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Valor</span><span className="font-semibold">R$ {(selectedPedido.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Vendedor</span><span>{selectedPedido.vendedor_nome || "—"}</span></div>
-                {selectedPedido.revendedor_nome && <div className="flex justify-between"><span className="text-muted-foreground">Revendedor</span><span>{selectedPedido.revendedor_nome}</span></div>}
-                <div className="flex justify-between items-center"><span className="text-muted-foreground">Status</span>
-                  <Badge variant="outline" className={`text-xs ${STATUS_COLORS[selectedPedido.status] || ""}`}>
-                    {STATUS_LABELS[selectedPedido.status] || selectedPedido.status}
-                  </Badge>
+            <Tabs defaultValue="resumo" className="mt-6">
+              <TabsList className="grid w-full grid-cols-2 rounded-xl">
+                <TabsTrigger value="resumo" className="rounded-lg">Resumo</TabsTrigger>
+                <TabsTrigger value="relatorio" className="rounded-lg">Relatório</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="resumo" className="space-y-5 mt-4">
+                {/* Resumo */}
+                <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">CPF/CNPJ</span><span className="font-mono">{selectedPedido.lead_cpf || "—"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Plano</span><span>{selectedPedido.plano_nome || "—"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Valor</span><span className="font-semibold">R$ {(selectedPedido.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Vendedor</span><span>{selectedPedido.vendedor_nome || "—"}</span></div>
+                  {selectedPedido.revendedor_nome && <div className="flex justify-between"><span className="text-muted-foreground">Revendedor</span><span>{selectedPedido.revendedor_nome}</span></div>}
+                  <div className="flex justify-between items-center"><span className="text-muted-foreground">Status</span>
+                    <Badge variant="outline" className={`text-xs ${STATUS_COLORS[selectedPedido.status] || ""}`}>
+                      {STATUS_LABELS[selectedPedido.status] || selectedPedido.status}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
 
-              {/* Documentos */}
-              <div>
-                <p className="text-sm font-semibold mb-3">Documentos</p>
-                <Button
-                  onClick={gerarRelatorio}
-                  disabled={gerandoRelatorio}
-                  variant="outline"
-                  className="w-full gap-2 rounded-xl mb-3"
-                >
-                  {gerandoRelatorio ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</>
-                  ) : (
-                    <><FileText className="w-4 h-4" /> Gerar Relatório do Pedido</>
-                  )}
-                </Button>
-              </div>
+                {/* Documentos */}
+                <div>
+                  <p className="text-sm font-semibold mb-3">Documentos</p>
+                  <Button
+                    onClick={gerarRelatorio}
+                    disabled={gerandoRelatorio}
+                    variant="outline"
+                    className="w-full gap-2 rounded-xl mb-3"
+                  >
+                    {gerandoRelatorio ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</>
+                    ) : (
+                      <><FileText className="w-4 h-4" /> Gerar Relatório do Pedido</>
+                    )}
+                  </Button>
+                </div>
 
-              {/* Ações integração */}
-              <div>
-                <p className="text-sm font-semibold mb-3">Ações de Integração</p>
-                <PedidoAcoes
-                  pedido={selectedPedido}
-                  lead={selectedLead}
-                />
-              </div>
-            </div>
+                {/* Ações integração */}
+                <div>
+                  <p className="text-sm font-semibold mb-3">Ações de Integração</p>
+                  <PedidoAcoes
+                    pedido={selectedPedido}
+                    lead={selectedLead}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="relatorio" className="space-y-5 mt-4">
+                {/* Resumo Financeiro */}
+                <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground mb-1">Status Atual</p>
+                    <Badge variant="outline" className={`text-sm ${STATUS_COLORS[selectedPedido.status] || ""}`}>
+                      {STATUS_LABELS[selectedPedido.status] || selectedPedido.status}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Valor Total</span>
+                    <span className="font-bold text-base">R$ {(selectedPedido.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border/50">
+                    {selectedPedido.data_credito && <p>Análise de Crédito: {new Date(selectedPedido.data_credito).toLocaleDateString("pt-BR")}</p>}
+                    {selectedPedido.data_viabilidade && <p>Viabilidade: {new Date(selectedPedido.data_viabilidade).toLocaleDateString("pt-BR")}</p>}
+                    {selectedPedido.data_contrato && <p>Contrato: {new Date(selectedPedido.data_contrato).toLocaleDateString("pt-BR")}</p>}
+                    {selectedPedido.data_ativacao && <p>Ativação: {new Date(selectedPedido.data_ativacao).toLocaleDateString("pt-BR")}</p>}
+                  </div>
+                </div>
+
+                {/* Histórico de Análise de Crédito */}
+                <div>
+                  <p className="text-sm font-semibold mb-3">Análise de Crédito</p>
+                  {(() => {
+                    const analise = analisesCr.find(a => a.pedido_id === selectedPedido.id);
+                    return analise ? (
+                      <div className="rounded-xl border border-border p-3 space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Score</span>
+                          <span className="font-semibold">{analise.score || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Classificação ABC</span>
+                          <Badge variant="outline" className="text-xs">{analise.classificacao_abc || "—"}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Probabilidade Inadimplência</span>
+                          <span className="font-medium">{analise.probabilidade_inadimplencia ? `${(analise.probabilidade_inadimplencia * 100).toFixed(1)}%` : "—"}</span>
+                        </div>
+                        <div className="flex justify-between items-start">
+                          <span className="text-muted-foreground">Resultado</span>
+                          <Badge className={`text-xs ${analise.resultado === "aprovado" ? "bg-emerald-50 text-emerald-700" : analise.resultado === "reprovado" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>
+                            {analise.resultado || "—"}
+                          </Badge>
+                        </div>
+                        {analise.observacao && (
+                          <div className="pt-2 border-t border-border/50">
+                            <p className="text-xs text-muted-foreground mb-1">Observação</p>
+                            <p className="text-xs">{analise.observacao}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground italic">Sem análise de crédito registrada</div>
+                    );
+                  })()}
+                </div>
+              </TabsContent>
+            </Tabs>
           )}
         </SheetContent>
       </Sheet>
