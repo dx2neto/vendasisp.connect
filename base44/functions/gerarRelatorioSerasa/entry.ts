@@ -24,11 +24,21 @@ Deno.serve(async (req) => {
     }
     if (!doc) return Response.json({ error: 'CPF/CNPJ não encontrado' }, { status: 400 });
 
-    // Consulta API Valido Cadastro (TOP+)
-    const resp = await fetch('https://api.validocadastro.com.br/v1/consulta/topMais', {
+    // Consulta API Valido Cadastro
+    const resp = await fetch('https://api.validocadastro.com.br/json/service.aspx', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chaveAcesso: chave, cpfCnpj: doc.replace(/\D/g, '') }),
+      body: JSON.stringify({
+        CodigoProduto: '630',
+        Versao: '20180521',
+        ChaveAcesso: chave,
+        Info: { Solicitante: '' },
+        Parametros: {
+          TipoPessoa: doc.length === 14 ? 'J' : 'F',
+          CPFCNPJ: doc.replace(/\D/g, ''),
+        },
+        WebHook: { UrlCallBack: '' },
+      }),
     });
 
     const respText = await resp.text();
@@ -47,14 +57,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Erro na API Valido', detalhe: data }, { status: 502 });
     }
 
-    // Extrai campos
-    const score = data?.score?.pontuacao ?? data?.pontuacao ?? null;
-    const classAbc = data?.score?.classificacaoAbc ?? data?.classificacaoAbc ?? null;
-    const classNro = data?.score?.classificacao ?? data?.classificacao ?? null;
-    const probInad = data?.probabilidadeInadimplencia ?? data?.score?.probabilidadeInadimplencia ?? null;
-    const textoRisco = data?.textoRisco ?? data?.score?.textoRisco ?? null;
-    const chaveConsulta = data?.chaveConsulta ?? data?.protocolo ?? null;
-    const dadosCliente = data?.dados ?? {};
+    // Extrai campos da resposta Valido Cadastro
+    const score = data?.Resultado?.score ?? data?.score ?? null;
+    const classAbc = data?.Resultado?.classificacaoAbc ?? data?.classificacaoAbc ?? null;
+    const classNro = data?.Resultado?.classificacao ?? data?.classificacao ?? null;
+    const probInad = data?.Resultado?.probabilidadeInadimplencia ?? data?.probabilidadeInadimplencia ?? null;
+    const textoRisco = data?.Resultado?.textoRisco ?? data?.textoRisco ?? null;
+    const chaveConsulta = data?.Resultado?.chaveConsulta ?? data?.chaveConsulta ?? null;
+    const dadosCliente = data?.Resultado?.dados ?? data?.dados ?? {};
 
     // Regras de aprovação
     const configs = await base44.asServiceRole.entities.ConfigRegras.list();
