@@ -23,13 +23,15 @@ Deno.serve(async (req) => {
     const { telefone, documento, id } = await req.json();
 
     const IXC_HOST = Deno.env.get('IXC_HOST');
-    const IXC_AUTH = Deno.env.get('IXC_AUTH_BASIC');
+    const token = Deno.env.get('IXC_TOKEN') || '';
+    const legacyAuth = (Deno.env.get('IXC_AUTH_BASIC') || '').replace(/^Basic\s+/i, '');
+    const IXC_AUTH = legacyAuth || (token ? btoa(token) : '');
 
     if (!IXC_HOST || !IXC_AUTH) {
       return Response.json({ encontrado: false, erro: 'IXC não configurado' });
     }
 
-    const base = IXC_HOST.replace(/\/$/, '');
+    const base = IXC_HOST.replace(/\/+$/, '').replace(/\/webservice\/v1$/i, '');
     const clienteUrl = `${base}/webservice/v1/cliente`;
 
     let cliente = null;

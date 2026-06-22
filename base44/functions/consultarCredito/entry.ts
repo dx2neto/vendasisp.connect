@@ -12,9 +12,16 @@ Deno.serve(async (req) => {
     const chave = Deno.env.get('VALIDO_CHAVE_ACESSO');
     if (!chave) return Response.json({ error: 'VALIDO_CHAVE_ACESSO não configurada' }, { status: 500 });
 
-    // Chamada à API Valido Cadastro (TOP+)
-    const url = `https://api.validocadastro.com.br/v1/consulta/topMais`;
-    const payload = { chaveAcesso: chave, cpfCnpj: cpf_cnpj.replace(/\D/g, '') };
+    const documento = cpf_cnpj.replace(/\D/g, '');
+    const url = Deno.env.get('VALIDO_URL') || 'https://api.validocadastro.com.br/json/service.aspx';
+    const payload = {
+      CodigoProduto: Deno.env.get('VALIDO_CODIGO_PRODUTO') || '630',
+      Versao: Deno.env.get('VALIDO_VERSAO') || '20180521',
+      ChaveAcesso: chave,
+      Info: { Solicitante: lead_nome || '' },
+      Parametros: { TipoPessoa: documento.length === 11 ? 'F' : 'J', CPFCNPJ: documento },
+      WebHook: { UrlCallBack: '' },
+    };
 
     const resp = await fetch(url, {
       method: 'POST',
@@ -22,7 +29,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify(payload),
     });
 
-    const data = await resp.json();
+    const rawData = await resp.json();
+    const data = rawData?.Retorno || rawData?.retorno || rawData?.Data || rawData?.data || rawData;
 
     if (!resp.ok) {
       // Salva o erro na entidade

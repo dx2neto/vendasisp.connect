@@ -16,18 +16,22 @@ Deno.serve(async (req) => {
     const telefone = conversa.contato_telefone;
     const EVOLUTION_URL = Deno.env.get('EVOLUTION_URL');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
-    const EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID');
+    let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
+    if (!EVOLUTION_INSTANCE_ID) {
+      const statuses = await db.entities.EvolutionStatus.list();
+      EVOLUTION_INSTANCE_ID = statuses[0]?.instance_id || '';
+    }
 
     let waId = null;
     let statusMsg = 'enviado';
 
-    if (EVOLUTION_URL && EVOLUTION_API_KEY) {
+    if (EVOLUTION_URL && EVOLUTION_API_KEY && EVOLUTION_INSTANCE_ID) {
       const resp = await fetch(`${EVOLUTION_URL}/send/text`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': EVOLUTION_API_KEY,
-          'instanceId': EVOLUTION_INSTANCE_ID || '',
+          'instanceId': EVOLUTION_INSTANCE_ID,
         },
         body: JSON.stringify({ number: telefone, text: texto }),
       });
@@ -39,6 +43,8 @@ Deno.serve(async (req) => {
       } else {
         statusMsg = 'erro';
       }
+    } else {
+      statusMsg = 'erro';
     }
 
     // Salva mensagem no banco

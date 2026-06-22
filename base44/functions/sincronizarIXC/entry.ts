@@ -1,7 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const IXC_HOST = () => Deno.env.get('IXC_HOST') || '';
-const IXC_AUTH = () => Deno.env.get('IXC_AUTH_BASIC') || '';
+const IXC_HOST = () => (Deno.env.get('IXC_HOST') || '')
+  .replace(/\/+$/, '')
+  .replace(/\/webservice\/v1$/i, '');
+const IXC_AUTH = () => {
+  const legacy = (Deno.env.get('IXC_AUTH_BASIC') || '').replace(/^Basic\s+/i, '');
+  const token = Deno.env.get('IXC_TOKEN') || '';
+  return legacy || (token ? btoa(token) : '');
+};
 
 async function ixcRequest(endpoint, body = null) {
   const url = `${IXC_HOST()}/webservice/v1/${endpoint}`;
@@ -15,7 +21,12 @@ async function ixcRequest(endpoint, body = null) {
     body: JSON.stringify(body || { qtype: 'id', query: '', oper: '>', page: '1', rp: '1000', sortname: 'id', sortorder: 'asc' }),
   };
   const resp = await fetch(url, opts);
-  const data = await resp.json();
+  const text = await resp.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { message: text || `HTTP ${resp.status}` }; }
+  if (!resp.ok) {
+    throw new Error(`IXC/${endpoint} respondeu HTTP ${resp.status}: ${data?.message || data?.error || 'falha na consulta'}`);
+  }
   return { ok: resp.ok, data };
 }
 

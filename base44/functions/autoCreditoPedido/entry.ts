@@ -29,14 +29,23 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'CPF/CNPJ não encontrado no pedido' });
     }
 
-    // Chama API Valido Cadastro (TOP+)
-    const resp = await fetch('https://api.validocadastro.com.br/v1/consulta/topMais', {
+    const documento = cpf_cnpj.replace(/\D/g, '');
+    const validoUrl = Deno.env.get('VALIDO_URL') || 'https://api.validocadastro.com.br/json/service.aspx';
+    const resp = await fetch(validoUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chaveAcesso: chave, cpfCnpj: cpf_cnpj.replace(/\D/g, '') }),
+      body: JSON.stringify({
+        CodigoProduto: Deno.env.get('VALIDO_CODIGO_PRODUTO') || '630',
+        Versao: Deno.env.get('VALIDO_VERSAO') || '20180521',
+        ChaveAcesso: chave,
+        Info: { Solicitante: pedido.lead_nome || '' },
+        Parametros: { TipoPessoa: documento.length === 11 ? 'F' : 'J', CPFCNPJ: documento },
+        WebHook: { UrlCallBack: '' },
+      }),
     });
 
-    const data = await resp.json();
+    const rawData = await resp.json();
+    const data = rawData?.Retorno || rawData?.retorno || rawData?.Data || rawData?.data || rawData;
 
     if (!resp.ok) {
       await base44.asServiceRole.entities.AnaliseCredito.create({

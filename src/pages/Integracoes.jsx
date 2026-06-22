@@ -146,7 +146,7 @@ export default function Integracoes() {
       const res = await base44.functions.invoke(fnName, {});
       setTestResults(prev => ({
         ...prev,
-        [service]: { ok: res.data?.ok, error: res.data?.error || res.data?.msg }
+        [service]: { ok: res.data?.ok, error: res.data?.ok ? null : (res.data?.error || res.data?.msg) }
       }));
     } catch (e) {
       setTestResults(prev => ({

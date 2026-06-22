@@ -278,9 +278,13 @@ Deno.serve(async (req) => {
     if (signerPhone && linkAssinatura) {
       const EVOLUTION_URL = Deno.env.get('EVOLUTION_URL');
       const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
-      const EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID');
+      let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
+      if (!EVOLUTION_INSTANCE_ID) {
+        const statuses = await base44.asServiceRole.entities.EvolutionStatus.list();
+        EVOLUTION_INSTANCE_ID = statuses[0]?.instance_id || '';
+      }
 
-      if (EVOLUTION_URL && EVOLUTION_API_KEY) {
+      if (EVOLUTION_URL && EVOLUTION_API_KEY && EVOLUTION_INSTANCE_ID) {
         const mensagemWA = `Olá, ${signerName}! 👋\n\nSeu contrato está pronto para assinatura digital.\n\n✍️ *Assine agora clicando no link abaixo:*\n${linkAssinatura}\n\n_Este link é exclusivo para você. Qualquer dúvida, entre em contato conosco._`;
 
         const waResp = await fetch(`${EVOLUTION_URL}/send/text`, {
@@ -288,7 +292,7 @@ Deno.serve(async (req) => {
           headers: {
             'Content-Type': 'application/json',
             'apikey': EVOLUTION_API_KEY,
-            'instanceId': EVOLUTION_INSTANCE_ID || '',
+            'instanceId': EVOLUTION_INSTANCE_ID,
           },
           body: JSON.stringify({ number: signerPhone, text: mensagemWA }),
         });

@@ -9,7 +9,8 @@ Deno.serve(async (req) => {
   // Processa em background
   (async () => {
     try {
-      const { event, data } = body;
+      const event = body.event || body.Event || body.type || '';
+      const data = body.data || body.Data || body.payload || {};
 
       if (event === 'Message' || event === 'messages.upsert') {
         // Suporte a formato Evolution API v2
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
 
       // === Eventos de conexão Evolution Go ===
       if (event === 'QRCode' || event === 'qrcode') {
-        const qr = data?.qrcode || data?.base64 || data?.qr || '';
+        const qr = data?.qrcode?.base64 || data?.qrcode || data?.base64 || data?.qr || '';
         if (qr) {
           const statusList = await db.entities.EvolutionStatus.list();
           const s = statusList[0];
@@ -123,12 +124,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (event === 'LoggedOut' || event === 'OfflineSyncCompleted') {
+      if (event === 'LoggedOut' || event === 'Disconnected' || event === 'OfflineSyncCompleted') {
         const statusList = await db.entities.EvolutionStatus.list();
         const s = statusList[0];
         if (s) {
           await db.entities.EvolutionStatus.update(s.id, {
-            status_conexao: event === 'LoggedOut' ? 'desconectado' : s.status_conexao,
+            status_conexao: event === 'OfflineSyncCompleted' ? s.status_conexao : 'desconectado',
             ultimo_evento: event,
           });
         }

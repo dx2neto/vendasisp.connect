@@ -6,16 +6,19 @@
 //   IXC_HOST   -> ex: https://meuprovedor.ixc.com.br   (SEM barra no final)
 //   IXC_TOKEN  -> token gerado no IXC no formato  "28:hashlongo..."  (id:hash)
 
-const IXC_HOST = (Deno.env.get("IXC_HOST") || "").replace(/\/+$/, "");
+const IXC_HOST = (Deno.env.get("IXC_HOST") || "")
+  .replace(/\/+$/, "")
+  .replace(/\/webservice\/v1$/i, "");
 const IXC_TOKEN = Deno.env.get("IXC_TOKEN") || "";
+const IXC_AUTH_BASIC = (Deno.env.get("IXC_AUTH_BASIC") || "").replace(/^Basic\s+/i, "");
 
 export function ixcConfigOk() {
-  return Boolean(IXC_HOST && IXC_TOKEN);
+  return Boolean(IXC_HOST && (IXC_TOKEN || IXC_AUTH_BASIC));
 }
 
 function authHeader() {
   // O token IXC já vem no formato id:hash — basta base64.
-  return "Basic " + btoa(IXC_TOKEN);
+  return "Basic " + (IXC_AUTH_BASIC || btoa(IXC_TOKEN));
 }
 
 export const onlyDigits = (v) => (v ? String(v).replace(/\D/g, "") : "");
@@ -59,6 +62,9 @@ export async function ixcList(table, p = {}) {
     body: JSON.stringify(body),
   });
   const data = await parse(res);
+  if (!res.ok) {
+    throw new Error(`IXC/${table} respondeu HTTP ${res.status}: ${data?.message || data?.error || 'falha na consulta'}`);
+  }
   return {
     total: Number(data?.total || 0),
     registros: Array.isArray(data?.registros) ? data.registros : [],
@@ -74,7 +80,9 @@ export async function ixcInsert(table, record) {
     headers: { "Content-Type": "application/json", Authorization: authHeader() },
     body: JSON.stringify(record),
   });
-  return await parse(res);
+  const data = await parse(res);
+  if (!res.ok) throw new Error(`IXC/${table} respondeu HTTP ${res.status}: ${data?.message || data?.error || 'falha ao inserir'}`);
+  return data;
 }
 
 /** Atualiza um registro pelo id (PUT). */
@@ -85,7 +93,9 @@ export async function ixcUpdate(table, id, record) {
     headers: { "Content-Type": "application/json", Authorization: authHeader() },
     body: JSON.stringify({ id, ...record }),
   });
-  return await parse(res);
+  const data = await parse(res);
+  if (!res.ok) throw new Error(`IXC/${table} respondeu HTTP ${res.status}: ${data?.message || data?.error || 'falha ao atualizar'}`);
+  return data;
 }
 
 /** Chama endpoints utilitários do IXC (get_boleto, get_pix, etc). */
@@ -96,7 +106,9 @@ export async function ixcAction(endpoint, payload) {
     headers: { "Content-Type": "application/json", Authorization: authHeader() },
     body: JSON.stringify(payload),
   });
-  return await parse(res);
+  const data = await parse(res);
+  if (!res.ok) throw new Error(`IXC/${endpoint} respondeu HTTP ${res.status}: ${data?.message || data?.error || 'falha na ação'}`);
+  return data;
 }
 
 /** Procura o id da cidade no IXC por nome (+UF opcional). */

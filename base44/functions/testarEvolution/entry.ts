@@ -8,17 +8,22 @@ Deno.serve(async (req) => {
 
     const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/$/, '');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
-    const EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID');
+    let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
 
     if (!EVOLUTION_URL || !EVOLUTION_API_KEY) {
       return Response.json({ ok: false, error: 'EVOLUTION_URL e EVOLUTION_API_KEY não configurados' });
     }
 
-    // Testa conexão listando instâncias (GET /instance/fetchInstances)
+    if (!EVOLUTION_INSTANCE_ID) {
+      const statuses = await base44.asServiceRole.entities.EvolutionStatus.list();
+      EVOLUTION_INSTANCE_ID = statuses[0]?.instance_id || '';
+    }
+
+    // Evolution Go exposes the instance collection at GET /instance/all.
     let resp;
     let data = {};
     try {
-      resp = await fetch(`${EVOLUTION_URL}/instance/fetchInstances`, {
+      resp = await fetch(`${EVOLUTION_URL}/instance/all`, {
         method: 'GET',
         headers: { 'apikey': EVOLUTION_API_KEY },
       });
@@ -33,26 +38,12 @@ Deno.serve(async (req) => {
     }
 
     // Qualquer resposta (mesmo 404) indica que o servidor está acessível
-    const serverOnline = resp.status < 500;
+    const serverOnline = resp.ok;
 
-    // Se tiver instance_id, tenta buscar status da instância
-    let instanceInfo = null;
-    if (EVOLUTION_INSTANCE_ID) {
-      try {
-        const instResp = await fetch(`${EVOLUTION_URL}/instance/fetchInstances`, {
-          method: 'GET',
-          headers: {
-            'apikey': EVOLUTION_API_KEY,
-            'instanceId': EVOLUTION_INSTANCE_ID,
-          },
-        });
-        if (instResp.ok) {
-          instanceInfo = await instResp.json().catch(() => null);
-        }
-      } catch (e) {
-        // ignora erro de instância
-      }
-    }
+    const instances = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    const instanceInfo = EVOLUTION_INSTANCE_ID
+      ? instances.find((item) => item.id === EVOLUTION_INSTANCE_ID || item.name === EVOLUTION_INSTANCE_ID) || null
+      : null;
 
     return Response.json({
       ok: serverOnline,
@@ -60,7 +51,9 @@ Deno.serve(async (req) => {
       url: EVOLUTION_URL,
       instance_id: EVOLUTION_INSTANCE_ID || null,
       instance: instanceInfo,
+      instances_count: instances.length,
       http_status: resp.status,
+      error: serverOnline ? undefined : (data?.message || data?.error || `Evolution respondeu HTTP ${resp.status}`),
     });
   } catch (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
