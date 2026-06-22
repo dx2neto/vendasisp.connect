@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, Gift, Share2, User, Phone, Mail, ArrowRight, Copy, MessageCircle } from "lucide-react";
+import { CheckCircle2, Gift, User, Phone, Mail, ArrowRight, Copy, MessageCircle } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
 function gerarCodigo(nome) {

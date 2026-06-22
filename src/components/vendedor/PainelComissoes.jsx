@@ -2,11 +2,11 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import {
   DollarSign, CheckCircle2, Clock, TrendingUp, Trophy, AlertCircle,
-  ChevronDown, ChevronUp, Calendar, Percent, Filter
+  ChevronDown, ChevronUp, Percent, Filter
 } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";

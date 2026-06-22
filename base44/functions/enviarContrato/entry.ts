@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
     if (!pedido_id) return Response.json({ error: 'pedido_id obrigatório' }, { status: 400 });
 
     const zapToken = Deno.env.get('ZAPSIGN_TOKEN');
-    if (!zapToken) return Response.json({ error: 'ZAPSIGN_TOKEN não configurado' }, { status: 500 });
+    if (!zapToken) return Response.json({ error: 'Envio de contrato indisponível: configure o secret ZAPSIGN_TOKEN.', missing_secret: 'ZAPSIGN_TOKEN' }, { status: 400 });
 
     // Busca pedido e lead
     const pedido = await base44.asServiceRole.entities.Pedido.get(pedido_id);

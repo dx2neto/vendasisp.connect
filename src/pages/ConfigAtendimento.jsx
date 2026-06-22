@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Save, Loader2, Link } from "lucide-react";
+import { Plus, Trash2, Loader2, Link } from "lucide-react";
 import { toast } from "sonner";
+import GerenciamentoEvolutionGo from "@/components/atendimento/GerenciamentoEvolutionGo";
 
 function SetoresTab() {
   const qc = useQueryClient();
@@ -163,11 +164,13 @@ export default function ConfigAtendimento() {
         <TabsList className="rounded-xl">
           <TabsTrigger value="setores">Setores</TabsTrigger>
           <TabsTrigger value="respostas">Respostas Rápidas</TabsTrigger>
-          <TabsTrigger value="webhook">WhatsApp / Webhook</TabsTrigger>
+          <TabsTrigger value="evolution">Evolution Go</TabsTrigger>
+          <TabsTrigger value="webhook">Webhook (Avançado)</TabsTrigger>
         </TabsList>
         <div className="mt-4">
           <TabsContent value="setores"><SetoresTab /></TabsContent>
           <TabsContent value="respostas"><RespostasTab /></TabsContent>
+          <TabsContent value="evolution"><GerenciamentoEvolutionGo /></TabsContent>
           <TabsContent value="webhook"><WebhookTab /></TabsContent>
         </div>
       </Tabs>

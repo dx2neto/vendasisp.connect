@@ -1,0 +1,14 @@
+[
+  { "id": 1,  "cidade": "Cachoeira Dourada - GO", "host": "https://HOST_CACHOEIRA_GO",  "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 3,  "cidade": "Inaciolandia - GO",      "host": "https://HOST_INACIOLANDIA",   "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 4,  "cidade": "Gouvelandia - GO",       "host": "https://HOST_GOUVELANDIA",    "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 5,  "cidade": "Cachoeira Dourada - MG", "host": "https://HOST_CACHOEIRA_MG",   "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 6,  "cidade": "Capinopolis - MG",       "host": "https://HOST_CAPINOPOLIS",    "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 7,  "cidade": "Ipiacu - MG",            "host": "https://HOST_IPIACU",         "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 8,  "cidade": "Santa Vitoria - MG",     "host": "https://HOST_SANTA_VITORIA",  "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 9,  "cidade": "Sao Simao - GO",         "host": "https://HOST_SAO_SIMAO",      "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 10, "cidade": "Quirinopolis - GO",      "host": "https://HOST_QUIRINOPOLIS",   "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 11, "cidade": "Itumbiara - GO",         "host": "https://HOST_ITUMBIARA",      "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 12, "cidade": "Arapora - MG",           "host": "https://HOST_ARAPORA",        "auth": "BASE64_DO_TOKEN_id:hash" },
+  { "id": 13, "cidade": "Canapolis - MG",         "host": "https://HOST_CANAPOLIS",      "auth": "BASE64_DO_TOKEN_id:hash" }
+]

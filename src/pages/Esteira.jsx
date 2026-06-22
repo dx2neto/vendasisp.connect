@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { User, CheckCircle2, Zap, Sparkles, Flame, Clock, Filter, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { differenceInHours, differenceInDays } from "date-fns";
+import { differenceInHours } from "date-fns";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,14 +38,23 @@ const COLUMNS = [
 
 export default function Esteira() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [pedidosNovos, setPedidosNovos] = useState(new Set());
   const [filtroPrioridade, setFiltroPrioridade] = useState(null); // "quente" | "morno" | "frio"
   const [filtroEspera, setFiltroEspera] = useState(null); // "hoje" | "2dias" | "semana" | "mais"
 
+  // Determina se o usuário tem acesso total
+  const temAcessoTotal = user?.role === "admin" || user?.role === "gerente";
+
   const { data: pedidos = [] } = useQuery({
-    queryKey: ["pedidos"],
-    queryFn: () => base44.entities.Pedido.list("-created_date", 200),
+    queryKey: ["pedidos", user?.id],
+    queryFn: async () => {
+      const todos = await base44.entities.Pedido.list("-created_date", 200);
+      // Se for admin/gerente, mostra tudo; caso contrário, filtra apenas seus pedidos
+      if (user?.role === "admin" || user?.role === "gerente") return todos;
+      return todos.filter(p => p.vendedor_id === user?.id || p.vendedor_nome === user?.full_name);
+    },
   });
 
   // Subscreve a atualizações em tempo real de pedidos
@@ -91,6 +101,8 @@ export default function Esteira() {
   const totalAtivado = pedidos.filter(p => p.status === "ativado").reduce((s, p) => s + (p.valor || 0), 0);
 
   const exportarPlanilha = () => {
+    const pedidosExportar = temAcessoTotal ? pedidos : pedidos.filter(p => p.vendedor_id === user?.id || p.vendedor_nome === user?.full_name);
+    
     const cabecalho = [
       "Cliente", "CPF/CNPJ", "Plano", "Valor (R$)", "Status",
       "Vendedor", "Revendedor", "Canal Origem", "Sincronizado IXC",
@@ -101,7 +113,7 @@ export default function Esteira() {
     const fmt = (v) => (v ? `"${String(v).replace(/"/g, '""')}"` : '""');
     const fmtData = (d) => d ? format(new Date(d), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "";
 
-    const linhas = pedidos.map(p => [
+    const linhas = pedidosExportar.map(p => [
       fmt(p.lead_nome),
       fmt(p.lead_cpf),
       fmt(p.plano_nome),
@@ -131,7 +143,7 @@ export default function Esteira() {
     link.download = `esteira_vendas_${format(new Date(), "yyyy-MM-dd", { locale: ptBR })}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success(`${pedidos.length} pedidos exportados com sucesso!`);
+    toast.success(`${pedidosExportar.length} pedidos exportados com sucesso!`);
   };
 
   // Classificação de prioridade baseada no valor

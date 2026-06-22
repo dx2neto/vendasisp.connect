@@ -1,0 +1,55 @@
+{
+  "name": "CobrancaLog",
+  "type": "object",
+  "properties": {
+    "fatura_id": {
+      "type": "string",
+      "description": "ID da fatura no IXC (fn_areceber.id)"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente no IXC"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "telefone": {
+      "type": "string"
+    },
+    "valor": {
+      "type": "number"
+    },
+    "data_vencimento": {
+      "type": "string",
+      "format": "date"
+    },
+    "dias_atraso": {
+      "type": "number"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "lembrete",
+        "urgente",
+        "critico",
+        "suspensao"
+      ],
+      "description": "N\u00edvel da r\u00e9gua de cobran\u00e7a"
+    },
+    "mensagem": {
+      "type": "string"
+    },
+    "status_envio": {
+      "type": "string",
+      "enum": [
+        "enviado",
+        "erro"
+      ],
+      "default": "enviado"
+    }
+  },
+  "required": [
+    "fatura_id",
+    "tier"
+  ]
+}

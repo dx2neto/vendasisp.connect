@@ -2,8 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Star, Zap, TrendingUp, Target, Award, Crown, Flame, Shield, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, startOfWeek, isAfter } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format, startOfWeek, isAfter } from "date-fns";
 
 const BADGE_DEFINITIONS = [
   {

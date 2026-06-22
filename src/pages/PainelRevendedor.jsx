@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { usePermissions } from "@/lib/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  DollarSign, ShoppingCart, Users, TrendingUp, Plus, CheckCircle,
-  Clock, XCircle, AlertCircle, BarChart3, ArrowUpRight, Briefcase
+  DollarSign, ShoppingCart, TrendingUp, Plus, CheckCircle,
+  Clock, BarChart3, Briefcase
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -209,14 +209,14 @@ export default function PainelRevendedor() {
         </TabsContent>
 
         {/* Hierarquia */}
-        <TabsContent value="hierarquia" className="mt-4">
-          <HierarquiaComissoes
-            pedidos={meusPedidos}
-            comissoes={comissoesTodas}
-            revendedorNome={user?.full_name}
-            receitaGerada={receitaGerada}
-          />
-        </TabsContent>
+         <TabsContent value="hierarquia" className="mt-4">
+           <HierarquiaComissoes
+             pedidos={meusPedidos}
+             comissoes={minhasComissoes}
+             revendedorNome={user?.full_name}
+             receitaGerada={receitaGerada}
+           />
+         </TabsContent>
       </Tabs>
 
       <NovaVendaRevendedorModal

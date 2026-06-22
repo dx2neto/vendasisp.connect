@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Users, ShoppingCart, DollarSign, CheckCircle, CreditCard, BarChart3, Target, Trophy, Zap, TrendingUp } from "lucide-react";
+import { Users, ShoppingCart, DollarSign, CheckCircle, CreditCard, Target, Trophy, Zap } from "lucide-react";
 import SalesChart from "@/components/dashboard/SalesChart";
 import RankingGamificado from "@/components/dashboard/RankingGamificado";
 import MetasProgress from "@/components/dashboard/MetasProgress";

@@ -3,10 +3,12 @@ import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CreditCard, TrendingUp, AlertTriangle, CheckCircle, Search, Loader2 } from "lucide-react";
+import { CreditCard, TrendingUp, AlertTriangle, CheckCircle, Search, Loader2, FileSearch } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { useState } from "react";
 import { toast } from "sonner";
+import { usePermissions } from "@/lib/usePermissions";
+import { errorMessage } from "@/lib/errorMessage";
 
 const RESULTADO_COLORS = {
   aprovado: "bg-emerald-50 text-emerald-600",
@@ -18,7 +20,36 @@ const RESULTADO_COLORS = {
 export default function Credito() {
   const [cpf, setCpf] = useState("");
   const [ultimoResultado, setUltimoResultado] = useState(null);
+  const [baixandoId, setBaixandoId] = useState(null);
+  const { is } = usePermissions();
   const queryClient = useQueryClient();
+
+  const podeRelatorio = is.admin || is.gerente;
+  const baixarRelatorio = async (pedidoId, nome) => {
+    if (!pedidoId) { toast.error("Esta análise não tem pedido vinculado."); return; }
+    setBaixandoId(pedidoId);
+    try {
+      const fnUrl = base44.functions.getUrl?.("relatorioAnalisePedido") || `/api/functions/relatorioAnalisePedido`;
+      const token = base44.auth.getToken?.() || "";
+      const res = await fetch(fnUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: "include",
+        body: JSON.stringify({ pedido_id: pedidoId }),
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Erro ao gerar relatório"); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `analise_${(nome || "cliente").replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error("Erro ao gerar relatório: " + errorMessage(e));
+    } finally {
+      setBaixandoId(null);
+    }
+  };
 
   const { data: analises = [], isLoading } = useQuery({
     queryKey: ["analises"],
@@ -45,7 +76,7 @@ export default function Credito() {
       }
     },
     onError: (error) => {
-      toast.error(error.message || "Erro ao consultar crédito");
+      toast.error(errorMessage(error, "Erro ao consultar crédito"));
     }
   });
 
@@ -177,7 +208,20 @@ export default function Credito() {
                     </Badge>
                   </td>
                   <td className="py-3 px-4 text-xs text-muted-foreground">
-                    {a.created_date ? new Date(a.created_date).toLocaleDateString("pt-BR") : "—"}
+                    <div className="flex items-center gap-2">
+                      <span>{a.created_date ? new Date(a.created_date).toLocaleDateString("pt-BR") : "—"}</span>
+                      {podeRelatorio && a.pedido_id && (
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-7 px-2 text-violet-600 hover:bg-violet-50"
+                          title="Relatório de análise (PDF)"
+                          onClick={() => baixarRelatorio(a.pedido_id, a.lead_nome)}
+                          disabled={baixandoId === a.pedido_id}
+                        >
+                          {baixandoId === a.pedido_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSearch className="w-3.5 h-3.5" />}
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -218,6 +262,17 @@ export default function Credito() {
               </div>
               {a.created_date && (
                 <p className="text-muted-foreground pt-1 border-t border-border">{new Date(a.created_date).toLocaleDateString("pt-BR")}</p>
+              )}
+              {podeRelatorio && a.pedido_id && (
+                <Button
+                  variant="outline" size="sm"
+                  className="w-full gap-2 rounded-lg border-violet-200 text-violet-700 hover:bg-violet-50 mt-1"
+                  onClick={() => baixarRelatorio(a.pedido_id, a.lead_nome)}
+                  disabled={baixandoId === a.pedido_id}
+                >
+                  {baixandoId === a.pedido_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSearch className="w-3.5 h-3.5" />}
+                  Relatório (PDF)
+                </Button>
               )}
             </div>
           ))}

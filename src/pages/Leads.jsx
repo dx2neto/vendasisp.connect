@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Phone, Mail, FileText, Download, Loader2 } from "lucide-react";
 import LeadForm from "@/components/leads/LeadForm";
 import HistoricoNotas from "@/components/leads/HistoricoNotas";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import BotaoSerasa from "@/components/leads/BotaoSerasa";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ETAPA_COLORS = {
@@ -252,18 +253,21 @@ export default function Leads() {
            <DialogHeader>
               <div className="flex items-center justify-between pr-6">
                 <DialogTitle>Detalhes do Lead — {selectedLead?.nome}</DialogTitle>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-2 rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50"
-                  disabled={downloadingId === selectedLead?.id}
-                  onClick={() => selectedLead && handleDownloadPdf(selectedLead)}
-                >
-                  {downloadingId === selectedLead?.id
-                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Gerando...</>
-                    : <><Download className="w-3.5 h-3.5" /> PDF Cadastro</>
-                  }
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50"
+                    disabled={downloadingId === selectedLead?.id}
+                    onClick={() => selectedLead && handleDownloadPdf(selectedLead)}
+                  >
+                    {downloadingId === selectedLead?.id
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Gerando...</>
+                      : <><Download className="w-3.5 h-3.5" /> PDF Cadastro</>
+                    }
+                  </Button>
+                  {selectedLead?.cnpj_cpf && <BotaoSerasa lead={selectedLead} />}
+                </div>
               </div>
             </DialogHeader>
             {selectedLead && (

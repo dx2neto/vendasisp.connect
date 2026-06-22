@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     if (!cpf_cnpj) return Response.json({ error: 'cpf_cnpj obrigatório' }, { status: 400 });
 
     const chave = Deno.env.get('VALIDO_CHAVE_ACESSO');
-    if (!chave) return Response.json({ error: 'VALIDO_CHAVE_ACESSO não configurada' }, { status: 500 });
+    if (!chave) return Response.json({ error: 'Consulta de crédito indisponível: configure o secret VALIDO_CHAVE_ACESSO.', missing_secret: 'VALIDO_CHAVE_ACESSO' }, { status: 400 });
 
     const documento = cpf_cnpj.replace(/\D/g, '');
     const url = Deno.env.get('VALIDO_URL') || 'https://api.validocadastro.com.br/json/service.aspx';

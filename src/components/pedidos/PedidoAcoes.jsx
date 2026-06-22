@@ -3,9 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { CreditCard, FileText, Zap, Loader2, CheckCircle, ExternalLink, ChevronDown } from "lucide-react";
+import { CreditCard, FileText, Zap, Loader2, CheckCircle, ExternalLink, FileSearch } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { usePermissions } from "@/lib/usePermissions";
+import { errorMessage } from "@/lib/errorMessage";
+import HistoricoEnderecoIXC from "@/components/pedidos/HistoricoEnderecoIXC";
 import TemplatePreview, { preencherVariaveis } from "@/components/templates/TemplatePreview";
 
 const STATUS_FLOW = {
@@ -18,9 +20,37 @@ const STATUS_FLOW = {
 
 export default function PedidoAcoes({ pedido, lead }) {
   const queryClient = useQueryClient();
+  const { is } = usePermissions();
   const [showContrato, setShowContrato] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState(null);
   const [result, setResult] = useState(null);
+  const [baixandoRel, setBaixandoRel] = useState(false);
+
+  // Relatório de análise (PDF) — apenas admin/gerente
+  const baixarRelatorio = async () => {
+    setBaixandoRel(true);
+    try {
+      const fnUrl = base44.functions.getUrl?.('relatorioAnalisePedido') || `/api/functions/relatorioAnalisePedido`;
+      const token = base44.auth.getToken?.() || '';
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify({ pedido_id: pedido.id }),
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro ao gerar relatório'); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `analise_${(pedido.lead_nome || 'cliente').replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast({ title: 'Erro ao gerar relatório', description: errorMessage(e), variant: 'destructive' });
+    } finally {
+      setBaixandoRel(false);
+    }
+  };
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["pedidos"] });
@@ -70,7 +100,7 @@ export default function PedidoAcoes({ pedido, lead }) {
       invalidate();
       toast({ title: `Crédito: ${d.resultado}`, description: `Score: ${d.score ?? "—"} | Inadimplência: ${d.probabilidade_inadimplencia ?? "—"}%` });
     },
-    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: errorMessage(err), variant: "destructive" }),
   });
 
   // Enviar Contrato
@@ -93,7 +123,7 @@ export default function PedidoAcoes({ pedido, lead }) {
       invalidate();
       toast({ title: "Contrato enviado", description: "Link de assinatura gerado com sucesso." });
     },
-    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: errorMessage(err), variant: "destructive" }),
   });
 
   // Ativar no IXC
@@ -105,7 +135,7 @@ export default function PedidoAcoes({ pedido, lead }) {
       invalidate();
       toast({ title: "Ativado no IXC!", description: `Cliente #${d.id_cliente_ixc} | OS #${d.id_os_ixc}` });
     },
-    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: errorMessage(err), variant: "destructive" }),
   });
 
   const s = pedido.status;
@@ -113,6 +143,22 @@ export default function PedidoAcoes({ pedido, lead }) {
 
   return (
     <div className="space-y-3">
+      {/* Relatório de Análise (PDF) — somente gerente/admin */}
+      {(is.admin || is.gerente) && (
+        <Button
+          size="sm" variant="outline"
+          className="w-full gap-2 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50"
+          onClick={baixarRelatorio}
+          disabled={baixandoRel}
+        >
+          {baixandoRel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSearch className="w-3.5 h-3.5" />}
+          Relatório de Análise (PDF)
+        </Button>
+      )}
+
+      {/* Histórico do cliente/endereço no IXC — gerente/admin */}
+      {(is.admin || is.gerente) && <HistoricoEnderecoIXC pedidoId={pedido.id} />}
+
       {/* Analisar Crédito */}
       {(s === "novo" || s === "analise_credito") && (
         <Button

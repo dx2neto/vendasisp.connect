@@ -29,14 +29,22 @@ Deno.serve(async (req) => {
     }
 
     const contrato = contratos[0];
+    const jaAssinado = contrato.status === 'assinado'; // re-entrega do webhook?
     const agora = new Date().toISOString();
     const urlPdf = body?.document?.signed_file || body?.signed_file || contrato.url_pdf || '';
+
+    // Captura IP/navegador do assinante (se o ZapSign enviar)
+    const signer0 = (body?.signers || body?.document?.signers || [])[0] || {};
+    const ipAssinante = signer0.ip || signer0.signer_ip || body?.ip || '';
+    const navAssinante = signer0.user_agent || signer0.device || body?.user_agent || '';
 
     // 1. Atualiza o contrato → assinado
     await base44.asServiceRole.entities.Contrato.update(contrato.id, {
       status: 'assinado',
       data_assinatura: agora,
       url_pdf: urlPdf,
+      ...(ipAssinante ? { ip_assinante: ipAssinante } : {}),
+      ...(navAssinante ? { navegador_assinante: navAssinante } : {}),
     });
 
     let pedido = null;
@@ -70,16 +78,19 @@ Deno.serve(async (req) => {
           : null;
         const vendedorEmail = vendedor?.email || '';
 
-        if (vendedorEmail) {
+        // Evita e-mail duplicado: só notifica se ainda não foi assinado/notificado
+        const podeNotificar = vendedorEmail && !jaAssinado && !pedido.email_assinatura_enviado;
+        if (podeNotificar) {
           await base44.asServiceRole.integrations.Core.SendEmail({
             to: vendedorEmail,
             from_name: 'CRM — ZapSign',
             subject: `✅ Contrato assinado: ${pedido.lead_nome}`,
             body: `Olá ${pedido.vendedor_nome || 'Vendedor'},\n\n🎉 O cliente ${pedido.lead_nome} assinou o contrato no ZapSign!\n\nO status do pedido foi atualizado automaticamente para "Assinado".\n\nPróximos passos:\n1. Verificar viabilidade técnica (se ainda pendente)\n2. Ativar cliente no IXC\n3. Registrar OS de instalação\n\nAcesse o CRM para prosseguir.\n\n---\nEsta é uma mensagem automática. Não responda este e-mail.`,
           });
+          await base44.asServiceRole.entities.Pedido.update(contrato.pedido_id, { email_assinatura_enviado: true }).catch(() => null);
           notificacaoEnviada = true;
           console.log(`E-mail de notificação enviado para ${vendedorEmail}`);
-        } else {
+        } else if (!vendedorEmail) {
           console.warn('Vendedor sem e-mail cadastrado, notificação não enviada.');
         }
       }

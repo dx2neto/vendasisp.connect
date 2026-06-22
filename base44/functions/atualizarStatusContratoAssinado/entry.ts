@@ -26,14 +26,17 @@ Deno.serve(async (req) => {
     const vendedor = pedido.vendedor_id ? await base44.asServiceRole.entities.User.get(pedido.vendedor_id) : null;
     const vendedorEmail = vendedor?.email || '';
 
-    if (vendedorEmail) {
+    let notificou = false;
+    if (vendedorEmail && !pedido.email_assinatura_enviado) {
       try {
-        await base44.integrations.Core.SendEmail({
+        await base44.asServiceRole.integrations.Core.SendEmail({
           to: vendedorEmail,
           from_name: 'CRM ISP - ZapSign',
           subject: `✅ Contrato Assinado: ${pedido.lead_nome}`,
           body: `Olá ${pedido.vendedor_nome},\n\n🎉 O contrato de ${pedido.lead_nome} foi assinado com sucesso no ZapSign!\n\nPróximos passos:\n1. Revisar dados de viabilidade técnica\n2. Ativar cliente no IXC\n3. Registrar instalação\n\nAcesse o CRM para prosseguir.`,
         });
+        await base44.asServiceRole.entities.Pedido.update(pedido_id, { email_assinatura_enviado: true }).catch(() => null);
+        notificou = true;
       } catch (emailError) {
         console.error('Erro ao enviar email:', emailError);
       }
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       pedido_status: pedido.status,
-      notificacao_enviada: !!vendedorEmail,
+      notificacao_enviada: notificou,
     });
   } catch (error) {
     console.error('Erro ao atualizar status:', error);

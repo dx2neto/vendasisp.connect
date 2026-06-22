@@ -23,6 +23,11 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'Sem email do vendedor para notificar' });
     }
 
+    // Evita duplicado se outro fluxo (webhook) já notificou
+    if (pedido.email_assinatura_enviado) {
+      return Response.json({ success: true, message: 'Notificação já enviada anteriormente', email_enviado: false });
+    }
+
     // Envia email de notificação
     const emailResult = await base44.integrations.Core.SendEmail({
       to: vendedorEmail,
@@ -30,6 +35,8 @@ Deno.serve(async (req) => {
       subject: `✅ Contrato assinado: ${pedido.lead_nome}`,
       body: `Olá ${pedido.vendedor_nome},\n\nO contrato do cliente ${pedido.lead_nome} foi assinado com sucesso na ZapSign!\n\nPróximos passos:\n- Revisar dados de viabilidade\n- Sincronizar com IXC\n- Ativar cliente\n\nAcesse o CRM para mais detalhes.`,
     });
+
+    await base44.asServiceRole.entities.Pedido.update(pedido.id, { email_assinatura_enviado: true }).catch(() => null);
 
     return Response.json({
       success: true,

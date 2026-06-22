@@ -1,0 +1,79 @@
+{
+  "name": "WhatsAppMessage",
+  "type": "object",
+  "properties": {
+    "messageId": {
+      "type": "string",
+      "description": "ID \u00fanico da mensagem no WhatsApp (data.Info.ID)"
+    },
+    "chatJid": {
+      "type": "string",
+      "description": "JID do chat (ex: 557499879409@s.whatsapp.net)"
+    },
+    "senderJid": {
+      "type": "string",
+      "description": "JID do remetente"
+    },
+    "pushName": {
+      "type": "string",
+      "description": "Nome de exibi\u00e7\u00e3o do remetente"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "media"
+      ],
+      "description": "Tipo de mensagem: texto ou m\u00eddia"
+    },
+    "text": {
+      "type": "string",
+      "description": "Texto da mensagem (para type=text)"
+    },
+    "mediaType": {
+      "type": "string",
+      "enum": [
+        "image",
+        "video",
+        "audio",
+        "document",
+        null
+      ],
+      "description": "Tipo de m\u00eddia quando type=media"
+    },
+    "mediaUrl": {
+      "type": "string",
+      "description": "URL ou base64 da m\u00eddia"
+    },
+    "isFromMe": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a mensagem foi enviada pela pr\u00f3pria inst\u00e2ncia"
+    },
+    "isGroup": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a mensagem \u00e9 de um grupo"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da mensagem"
+    },
+    "instanceId": {
+      "type": "string",
+      "description": "UUID da inst\u00e2ncia Evolution Go"
+    },
+    "rawPayload": {
+      "type": "object",
+      "description": "Payload completo recebido do webhook para auditoria"
+    }
+  },
+  "required": [
+    "messageId",
+    "chatJid",
+    "type",
+    "timestamp",
+    "instanceId"
+  ]
+}

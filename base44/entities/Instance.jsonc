@@ -1,0 +1,36 @@
+{
+  "name": "Instance",
+  "type": "object",
+  "properties": {
+    "instanceId": {
+      "type": "string",
+      "description": "UUID \u00fanico da inst\u00e2ncia Evolution Go"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "waiting_qr",
+        "pair_success",
+        "connected",
+        "disconnected"
+      ],
+      "default": "waiting_qr",
+      "description": "Status da conex\u00e3o"
+    },
+    "jid": {
+      "type": "string",
+      "description": "JID da inst\u00e2ncia quando conectada"
+    },
+    "pushName": {
+      "type": "string",
+      "description": "Nome do n\u00famero conectado"
+    },
+    "lastQrCode": {
+      "type": "string",
+      "description": "\u00daltimo QR code gerado (base64 data:image/png;base64,...)"
+    }
+  },
+  "required": [
+    "instanceId"
+  ]
+}

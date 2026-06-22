@@ -30,50 +30,74 @@ async function ixcRequest(endpoint, body = null) {
   return { ok: resp.ok, data };
 }
 
+// Tenta uma lista de nomes de tabela e usa o primeiro que retornar registros.
+// Se nenhum tiver dados, devolve o resultado da primeira tentativa.
+async function ixcListar(candidatos, body = null) {
+  let primeiro = null;
+  for (const ep of candidatos) {
+    try {
+      const r = await ixcRequest(ep, body);
+      const regs = r.ok
+        ? (Array.isArray(r.data?.registros) ? r.data.registros : Array.isArray(r.data) ? r.data : [])
+        : [];
+      if (primeiro === null) primeiro = { registros: regs, endpoint: ep, ok: r.ok };
+      if (r.ok && regs.length > 0) return { registros: regs, endpoint: ep, ok: true };
+    } catch (_) { /* tenta o próximo candidato */ }
+  }
+  return primeiro || { registros: [], endpoint: candidatos[0], ok: false };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!IXC_HOST() || !IXC_AUTH()) return Response.json({ error: 'IXC não configurado' }, { status: 500 });
+    if (!IXC_HOST() || !IXC_AUTH()) return Response.json({ error: 'Integração IXC indisponível: configure os secrets IXC_HOST e IXC_AUTH_BASIC.', missing_secret: 'IXC_HOST/IXC_AUTH_BASIC' }, { status: 400 });
 
     const { tipo } = await req.json();
     const resultados = {};
+    resultados.endpoints = {}; // qual nome de tabela funcionou em cada tipo
 
     // ── Filiais ─────────────────────────────────────────────────────────
     if (!tipo || tipo === 'filiais') {
-      const r = await ixcRequest('filiais');
-      resultados.filiais = r.ok ? (r.data?.registros || r.data || []) : [];
+      const r = await ixcListar(['filial', 'filiais']);
+      resultados.filiais = r.registros;
+      resultados.endpoints.filiais = r.endpoint;
     }
 
     // ── Vendedores ───────────────────────────────────────────────────────
     if (!tipo || tipo === 'vendedores') {
-      const r = await ixcRequest('vendedor');
-      resultados.vendedores = r.ok ? (r.data?.registros || r.data || []) : [];
+      const r = await ixcListar(['vendedor', 'vendedores', 'funcionarios']);
+      resultados.vendedores = r.registros;
+      resultados.endpoints.vendedores = r.endpoint;
     }
 
-    // ── Planos (radaccess) ───────────────────────────────────────────────
+    // ── Planos (radaccess/radgrupo) ──────────────────────────────────────
     if (!tipo || tipo === 'planos') {
-      const r = await ixcRequest('radaccess');
-      resultados.planos_ixc = r.ok ? (r.data?.registros || r.data || []) : [];
+      const r = await ixcListar(['radaccess', 'radgrupo']);
+      resultados.planos_ixc = r.registros;
+      resultados.endpoints.planos = r.endpoint;
     }
 
-    // ── Produtos (modelos de contrato) ───────────────────────────────────
+    // ── Produtos ─────────────────────────────────────────────────────────
     if (!tipo || tipo === 'produtos') {
-      const r = await ixcRequest('produto');
-      resultados.produtos_ixc = r.ok ? (r.data?.registros || r.data || []) : [];
+      const r = await ixcListar(['produto', 'vd_produto', 'fn_produto']);
+      resultados.produtos_ixc = r.registros;
+      resultados.endpoints.produtos = r.endpoint;
     }
 
     // ── Assuntos OS ──────────────────────────────────────────────────────
     if (!tipo || tipo === 'assuntos') {
-      const r = await ixcRequest('su_assunto_chamado');
-      resultados.assuntos_os = r.ok ? (r.data?.registros || r.data || []) : [];
+      const r = await ixcListar(['su_oss_assunto', 'su_assunto_chamado', 'assunto_chamado']);
+      resultados.assuntos_os = r.registros;
+      resultados.endpoints.assuntos = r.endpoint;
     }
 
     // ── Setores OS ───────────────────────────────────────────────────────
     if (!tipo || tipo === 'setores') {
-      const r = await ixcRequest('setor');
-      resultados.setores_os = r.ok ? (r.data?.registros || r.data || []) : [];
+      const r = await ixcListar(['su_oss_setor', 'setor', 'su_setor']);
+      resultados.setores_os = r.registros;
+      resultados.endpoints.setores = r.endpoint;
     }
 
     // ── Sincronizar planos do CRM com IDs do IXC (se solicitado) ─────────
