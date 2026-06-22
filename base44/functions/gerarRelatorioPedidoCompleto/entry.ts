@@ -160,13 +160,26 @@ Deno.serve(async (req) => {
     });
 
     // Salva PDF
-    const pdfBytes = doc.output('arraybuffer');
-    const uploadRes = await base44.integrations.Core.UploadFile({ file: pdfBytes });
+    const pdfBase64 = doc.output('datauristring').split(',')[1];
+    
+    // Converte base64 para Uint8Array
+    const binaryString = atob(pdfBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
 
-    // Atualiza o Lead com URL do relatório
-    if (lead?.id && uploadRes.file_url) {
-      await base44.asServiceRole.entities.Lead.update(lead.id, {
-        relatorio_serasa_url: uploadRes.file_url
+    // Cria Blob do PDF
+    const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
+    
+    // Cria um objeto que o UploadFile possa usar
+    const uploadRes = await base44.integrations.Core.UploadFile({ file: pdfBlob });
+
+    // Atualiza o Pedido com URL do relatório (não Lead)
+    if (pedido?.id && uploadRes.file_url) {
+      await base44.asServiceRole.entities.Pedido.update(pedido.id, {
+        relatorio_pedido_url: uploadRes.file_url,
+        data_relatorio: new Date().toISOString()
       });
     }
 
