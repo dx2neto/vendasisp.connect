@@ -209,14 +209,14 @@ export default function PainelRevendedor() {
         </TabsContent>
 
         {/* Hierarquia */}
-        <TabsContent value="hierarquia" className="mt-4">
-          <HierarquiaComissoes
-            pedidos={meusPedidos}
-            comissoes={comissoesTodas}
-            revendedorNome={user?.full_name}
-            receitaGerada={receitaGerada}
-          />
-        </TabsContent>
+         <TabsContent value="hierarquia" className="mt-4">
+           <HierarquiaComissoes
+             pedidos={meusPedidos}
+             comissoes={minhasComissoes}
+             revendedorNome={user?.full_name}
+             receitaGerada={receitaGerada}
+           />
+         </TabsContent>
       </Tabs>
 
       <NovaVendaRevendedorModal
