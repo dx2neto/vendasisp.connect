@@ -33,11 +33,18 @@ Deno.serve(async (req) => {
     const agora = new Date().toISOString();
     const urlPdf = body?.document?.signed_file || body?.signed_file || contrato.url_pdf || '';
 
+    // Captura IP/navegador do assinante (se o ZapSign enviar)
+    const signer0 = (body?.signers || body?.document?.signers || [])[0] || {};
+    const ipAssinante = signer0.ip || signer0.signer_ip || body?.ip || '';
+    const navAssinante = signer0.user_agent || signer0.device || body?.user_agent || '';
+
     // 1. Atualiza o contrato → assinado
     await base44.asServiceRole.entities.Contrato.update(contrato.id, {
       status: 'assinado',
       data_assinatura: agora,
       url_pdf: urlPdf,
+      ...(ipAssinante ? { ip_assinante: ipAssinante } : {}),
+      ...(navAssinante ? { navegador_assinante: navAssinante } : {}),
     });
 
     let pedido = null;

@@ -28,6 +28,14 @@
     "url_pdf": {
       "type": "string"
     },
+    "ip_assinante": {
+      "type": "string",
+      "description": "IP de quem assinou (capturado do webhook ZapSign)"
+    },
+    "navegador_assinante": {
+      "type": "string",
+      "description": "User-agent/navegador de quem assinou"
+    },
     "cliente_nome": {
       "type": "string"
     },
