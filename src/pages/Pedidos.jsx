@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronRight, FileText, Download, Loader2 } from "lucide-react";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 import HistoricoEndereco from "@/components/pedidos/HistoricoEndereco";
 
@@ -28,6 +28,7 @@ export default function Pedidos() {
   const [showForm, setShowForm] = useState(false);
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [search, setSearch] = useState("");
+  const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { filtrarPedidos } = usePermissions();
@@ -77,6 +78,24 @@ export default function Pedidos() {
   const selectedLead = selectedPedido?.lead_id
     ? leads.find(l => l.id === selectedPedido.lead_id)
     : null;
+
+  const gerarRelatorio = async () => {
+    if (!selectedPedido?.id) return;
+    setGerandoRelatorio(true);
+    try {
+      const res = await base44.functions.invoke("gerarRelatorioPedidoCompleto", {
+        pedido_id: selectedPedido.id
+      });
+      if (res.data?.relatorio_url) {
+        window.open(res.data.relatorio_url, "_blank");
+        queryClient.invalidateQueries({ queryKey: ["leads"] });
+      }
+    } catch (err) {
+      console.error("Erro ao gerar relatório:", err);
+    } finally {
+      setGerandoRelatorio(false);
+    }
+  };
 
   return (
     <div className="space-y-4 pb-20 sm:pb-6">
@@ -197,6 +216,23 @@ export default function Pedidos() {
                     {STATUS_LABELS[selectedPedido.status] || selectedPedido.status}
                   </Badge>
                 </div>
+              </div>
+
+              {/* Documentos */}
+              <div>
+                <p className="text-sm font-semibold mb-3">Documentos</p>
+                <Button
+                  onClick={gerarRelatorio}
+                  disabled={gerandoRelatorio}
+                  variant="outline"
+                  className="w-full gap-2 rounded-xl mb-3"
+                >
+                  {gerandoRelatorio ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</>
+                  ) : (
+                    <><FileText className="w-4 h-4" /> Gerar Relatório do Pedido</>
+                  )}
+                </Button>
               </div>
 
               {/* Ações integração */}
