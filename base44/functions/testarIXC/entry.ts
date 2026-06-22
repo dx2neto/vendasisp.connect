@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const auth = legacyAuth || (token ? btoa(token) : '');
 
     if (!host || !auth) {
-      return Response.json({ ok: false, error: 'IXC_HOST e IXC_TOKEN não configurados' });
+      return Response.json({ ok: false, error: 'Configure IXC_HOST e IXC_AUTH_BASIC (Base64) ou IXC_TOKEN (id:hash)' });
     }
 
     // get_tok is not available in every IXC release; a one-row list validates

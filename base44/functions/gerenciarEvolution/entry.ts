@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Acesso restrito a administradores' }, { status: 403 });
 
-    const { acao, instanceName, phone, webhookUrl, subscribe } = await req.json();
+    const { acao, instanceName, instanceToken, proxy, phone, webhookUrl, subscribe } = await req.json();
 
     const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/$/, '');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
@@ -65,31 +65,50 @@ Deno.serve(async (req) => {
     // === CRIAR INSTÂNCIA ===
     if (acao === 'criar') {
       const nome = instanceName || 'netveloce-atendimento';
+      const token = instanceToken || Deno.env.get('EVOLUTION_INSTANCE_TOKEN') || crypto.randomUUID();
+      const createBody: Record<string, unknown> = { name: nome, token };
+      if (proxy && typeof proxy === 'object' && proxy.address) {
+        createBody.proxy = {
+          address: proxy.address,
+          port: String(proxy.port || ''),
+          username: proxy.username || '',
+          password: proxy.password || '',
+        };
+      }
       const resp = await fetch(`${EVOLUTION_URL}/instance/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_API_KEY },
-        body: JSON.stringify({
-          instanceName: nome,
-          integration: 'WHATSAPP-BAILEYS',
-        }),
+        body: JSON.stringify(createBody),
       });
       const ret = await resp.json().catch(() => ({}));
-      if (!resp.ok) return Response.json({ error: ret?.message || ret?.error || 'Erro ao criar instância' }, { status: 400 });
+      if (!resp.ok) {
+        return Response.json({
+          error: ret?.message || ret?.error || `Erro ao criar instância (HTTP ${resp.status})`,
+          detalhe: ret,
+        }, { status: resp.status });
+      }
+
+      const created = ret?.data || ret?.instance || ret;
+      const createdId = created?.id || created?.instanceId || ret?.instanceId || '';
+      const createdName = created?.name || nome;
+      const createdToken = created?.token || token;
 
       // Atualiza status com novo instanceId
       await db.entities.EvolutionStatus.update(statusRec.id, {
-        instance_id: ret.instance?.instanceId || ret.instanceId || '',
-        instance_name: nome,
+        instance_id: createdId,
+        instance_name: createdName,
         status_conexao: 'desconectado',
         qr_code: '',
       });
 
       return Response.json({
         ok: true,
-        instanceId: ret.instance?.instanceId || ret.instanceId,
-        instanceName: nome,
-        token: ret.instance?.token || ret.token,
-        aviso: 'Anote o instanceId e configure no secret EVOLUTION_INSTANCE_ID',
+        instanceId: createdId,
+        instanceName: createdName,
+        token: createdToken,
+        aviso: createdId
+          ? 'Instância criada e vinculada ao CRM.'
+          : 'Instância criada, mas a API não retornou o ID esperado.',
       });
     }
 
@@ -98,9 +117,15 @@ Deno.serve(async (req) => {
       if (!instanceId) {
         return Response.json({ error: 'Crie uma instância ou configure EVOLUTION_INSTANCE_ID antes de conectar' }, { status: 400 });
       }
+      const resolvedWebhook = Deno.env.get('EVOLUTION_WEBHOOK_URL') || webhookUrl || '';
+      const selectedEvents = Array.isArray(subscribe) && subscribe.length ? subscribe : ['ALL'];
       const body = {
-        webhookUrl: Deno.env.get('EVOLUTION_WEBHOOK_URL') || webhookUrl || `${EVOLUTION_URL}/webhook`,
-        subscribe: Array.isArray(subscribe) && subscribe.length ? subscribe : ['ALL'],
+        // Evolution Go releases use either pair of names; sending both is
+        // backwards-compatible and keeps the webhook registration explicit.
+        webhookUrl: resolvedWebhook,
+        webhook: resolvedWebhook,
+        subscribe: selectedEvents,
+        events: selectedEvents,
         immediate: true,
       };
       if (phone) body.phone = phone;
