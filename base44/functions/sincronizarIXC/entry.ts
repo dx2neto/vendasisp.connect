@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!IXC_HOST() || !IXC_AUTH()) return Response.json({ error: 'IXC não configurado' }, { status: 500 });
+    if (!IXC_HOST() || !IXC_AUTH()) return Response.json({ error: 'Integração IXC indisponível: configure os secrets IXC_HOST e IXC_AUTH_BASIC.', missing_secret: 'IXC_HOST/IXC_AUTH_BASIC' }, { status: 400 });
 
     const { tipo } = await req.json();
     const resultados = {};

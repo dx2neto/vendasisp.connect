@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     if (!pedido_id) return Response.json({ error: 'pedido_id obrigatório' }, { status: 400 });
 
     const chave = Deno.env.get('VALIDO_CHAVE_ACESSO');
-    if (!chave) return Response.json({ error: 'VALIDO_CHAVE_ACESSO não configurada' }, { status: 500 });
+    if (!chave) return Response.json({ error: 'Consulta de crédito indisponível: configure o secret VALIDO_CHAVE_ACESSO.', missing_secret: 'VALIDO_CHAVE_ACESSO' }, { status: 400 });
 
     // Busca pedido e lead para obter CPF/CNPJ
     const pedido = await base44.asServiceRole.entities.Pedido.get(pedido_id);

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { CreditCard, FileText, Zap, Loader2, CheckCircle, ExternalLink, FileSearch } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { usePermissions } from "@/lib/usePermissions";
+import { errorMessage } from "@/lib/errorMessage";
 import HistoricoEnderecoIXC from "@/components/pedidos/HistoricoEnderecoIXC";
 import TemplatePreview, { preencherVariaveis } from "@/components/templates/TemplatePreview";
 
@@ -45,7 +46,7 @@ export default function PedidoAcoes({ pedido, lead }) {
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      toast({ title: 'Erro ao gerar relatório', description: e.message, variant: 'destructive' });
+      toast({ title: 'Erro ao gerar relatório', description: errorMessage(e), variant: 'destructive' });
     } finally {
       setBaixandoRel(false);
     }
@@ -99,7 +100,7 @@ export default function PedidoAcoes({ pedido, lead }) {
       invalidate();
       toast({ title: `Crédito: ${d.resultado}`, description: `Score: ${d.score ?? "—"} | Inadimplência: ${d.probabilidade_inadimplencia ?? "—"}%` });
     },
-    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: errorMessage(err), variant: "destructive" }),
   });
 
   // Enviar Contrato
@@ -122,7 +123,7 @@ export default function PedidoAcoes({ pedido, lead }) {
       invalidate();
       toast({ title: "Contrato enviado", description: "Link de assinatura gerado com sucesso." });
     },
-    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: errorMessage(err), variant: "destructive" }),
   });
 
   // Ativar no IXC
@@ -134,7 +135,7 @@ export default function PedidoAcoes({ pedido, lead }) {
       invalidate();
       toast({ title: "Ativado no IXC!", description: `Cliente #${d.id_cliente_ixc} | OS #${d.id_os_ixc}` });
     },
-    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: errorMessage(err), variant: "destructive" }),
   });
 
   const s = pedido.status;

@@ -8,6 +8,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import { useState } from "react";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/usePermissions";
+import { errorMessage } from "@/lib/errorMessage";
 
 const RESULTADO_COLORS = {
   aprovado: "bg-emerald-50 text-emerald-600",
@@ -44,7 +45,7 @@ export default function Credito() {
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      toast.error("Erro ao gerar relatório: " + e.message);
+      toast.error("Erro ao gerar relatório: " + errorMessage(e));
     } finally {
       setBaixandoId(null);
     }
@@ -75,7 +76,7 @@ export default function Credito() {
       }
     },
     onError: (error) => {
-      toast.error(error.message || "Erro ao consultar crédito");
+      toast.error(errorMessage(error, "Erro ao consultar crédito"));
     }
   });
 

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { FileText, RefreshCw, Eye, Save, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/errorMessage";
 
 // Configuração de Contratos:
 //  1) Sincroniza os modelos de contrato do IXC (sincronizarIXC -> sync_modelos)
@@ -37,7 +38,7 @@ export default function ConfiguracaoContratos() {
       });
       setSelecao(sel);
     } catch (e) {
-      toast.error("Falha ao carregar dados: " + (e?.message || e));
+      toast.error("Falha ao carregar dados: " + errorMessage(e));
     } finally {
       setCarregando(false);
     }
@@ -56,7 +57,7 @@ export default function ConfiguracaoContratos() {
       toast.success(`Modelos: ${encontrados} no IXC — ${criados} novo(s), ${atualizados} atualizado(s).`);
       await carregar();
     } catch (e) {
-      toast.error("Erro ao sincronizar modelos: " + (e?.message || e));
+      toast.error("Erro ao sincronizar modelos: " + errorMessage(e));
     } finally {
       setSincronizando(false);
     }
@@ -78,7 +79,7 @@ export default function ConfiguracaoContratos() {
       toast.success(`Plano "${plano.nome}" vinculado a ${ids.length} modelo(s).`);
       setPlanos((prev) => prev.map((p) => (p.id === plano.id ? { ...p, template_ids: ids } : p)));
     } catch (e) {
-      toast.error("Erro ao salvar vínculo: " + (e?.message || e));
+      toast.error("Erro ao salvar vínculo: " + errorMessage(e));
     } finally {
       setSalvandoId(null);
     }

@@ -6,6 +6,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { History, Loader2, MapPin, UserCheck, AlertCircle, CheckCircle2 } from "lucide-react";
+import { errorMessage } from "@/lib/errorMessage";
 
 const statusLabel = (s) => (s === "S" ? "Ativo" : s === "N" ? "Inativo" : s || "—");
 
@@ -28,7 +29,7 @@ export default function HistoricoEnderecoIXC({ pedidoId }) {
       if (d.error) throw new Error(d.error);
       setData(d);
     } catch (e) {
-      setErro(e?.message || "Falha ao consultar histórico");
+      setErro(errorMessage(e, "Falha ao consultar histórico"));
     } finally {
       setLoading(false);
     }
