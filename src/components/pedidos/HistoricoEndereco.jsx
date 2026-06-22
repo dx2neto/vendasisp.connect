@@ -102,22 +102,26 @@ export default function HistoricoEndereco({ cep, numero, rua }) {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-              <div>
-                <p>Contratos</p>
-                <p className="font-medium text-foreground">{h.total_contratos}</p>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Endereço:</span>
+                <span className="font-medium text-right">{h.endereco}</span>
               </div>
-              <div>
-                <p>Faturas em aberto</p>
-                <p className={`font-medium ${h.faturas_em_aberto > 0 ? "text-red-600" : "text-foreground"}`}>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Contratos:</span>
+                <span className="font-medium">{h.total_contratos}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Faturas em aberto:</span>
+                <span className={`font-medium ${h.faturas_em_aberto > 0 ? "text-red-600" : "text-foreground"}`}>
                   {h.faturas_em_aberto}
-                </p>
+                </span>
               </div>
-              <div>
-                <p>Total em aberto</p>
-                <p className={`font-medium ${h.total_em_aberto > 0 ? "text-red-600" : "text-foreground"}`}>
+              <div className="flex justify-between border-t border-border/50 pt-1.5">
+                <span className="text-muted-foreground font-semibold">Valor em aberto:</span>
+                <span className={`font-bold ${h.total_em_aberto > 0 ? "text-red-600" : "text-foreground"}`}>
                   R$ {h.total_em_aberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </p>
+                </span>
               </div>
             </div>
           </div>
