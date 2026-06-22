@@ -137,13 +137,29 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, resultado: ret });
     }
 
-    // === BUSCAR QR CODE ATUAL ===
+    // === BUSCAR QR CODE ATUAL (do Evolution Go) ===
     if (acao === 'qr') {
+      let qrFromAPI = null;
+      try {
+        const qrResp = await fetch(`${EVOLUTION_URL}/instance/qr`, {
+          method: 'GET',
+          headers,
+        });
+        if (qrResp.ok) {
+          const qrData = await qrResp.json().catch(() => ({}));
+          qrFromAPI = qrData.qrcode || qrData.qr || qrData.base64 || null;
+        }
+      } catch (e) {
+        console.log('Erro ao buscar QR da API:', e.message);
+      }
+
+      const qrCode = qrFromAPI || statusRec.qr_code || '';
       return Response.json({
         ok: true,
-        qr_code: statusRec.qr_code || '',
+        qr_code: qrCode,
         status: statusRec.status_conexao,
         phone: statusRec.phone_connected || '',
+        fromAPI: !!qrFromAPI,
       });
     }
 
