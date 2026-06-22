@@ -78,14 +78,29 @@ Deno.serve(async (req) => {
     const idClienteIxc = String(clienteResp.data?.id || clienteResp.data?.referencia || '');
 
     // ── 2. Cria contrato de serviço ──────────────────────────────────────────
+    // Campos conferidos com a collection CRUD cliente_contrato da instância.
+    const hojeIso = new Date().toISOString().slice(0, 10);
     const contratoPayload = {
+      tipo: 'I',
       id_cliente: idClienteIxc,
-      id_produto: plano?.id_produto_ixc || '',
-      contrato: `CTR-${pedido_id.substring(0, 8).toUpperCase()}`,
-      status: cfg.status_contrato_inicial || 'P',
-      forma_pagamento: 'B', // boleto padrão
-      dia_vencimento: '10',
+      id_modelo: plano?.id_modelo_ixc || '',            // modelo do contrato (= Plano.id_modelo_ixc)
+      id_tipo_contrato: cfg.id_tipo_contrato_ixc || '',
+      id_vendedor: cfg.id_vendedor_ixc_padrao || '1',
       id_filial: cfg.id_filial_ixc || '1',
+      id_carteira_cobranca: cfg.id_carteira_cobranca_ixc || '',
+      contrato: `CTR-${pedido_id.substring(0, 8).toUpperCase()}`,
+      status: cfg.status_contrato_inicial || 'P',       // P=pré-contrato, A=ativo
+      status_internet: cfg.status_internet_inicial || 'A', // A=ativo, D=desativado
+      data: hojeIso,
+      data_ativacao: hojeIso,
+      dia_fixo_vencimento: String(cfg.dia_vencimento_padrao || '10'),
+      fidelidade: String(cfg.fidelidade_meses ?? '0'),
+      taxa_instalacao: '0.00',
+      bloqueio_automatico: 'S',
+      aviso_atraso: 'S',
+      renovacao_automatica: 'S',
+      endereco_padrao_cliente: 'S',                     // reaproveita o endereço cadastrado do cliente
+      obs_contrato: `Ativação via CRM - Pedido ${pedido_id}`,
     };
 
     const contratoResp = await ixcRequest('POST', 'cliente_contrato', contratoPayload);

@@ -42,6 +42,24 @@
       "type": "string",
       "default": "P"
     },
+    "id_tipo_contrato_ixc": {
+      "type": "string"
+    },
+    "id_carteira_cobranca_ixc": {
+      "type": "string"
+    },
+    "status_internet_inicial": {
+      "type": "string",
+      "default": "A"
+    },
+    "fidelidade_meses": {
+      "type": "string",
+      "default": "0"
+    },
+    "dia_vencimento_padrao": {
+      "type": "string",
+      "default": "10"
+    },
     "zapsign_url_api": {
       "type": "string",
       "default": "https://api.zapsign.com.br/api/v1/"
