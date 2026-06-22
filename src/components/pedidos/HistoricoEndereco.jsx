@@ -11,10 +11,10 @@ export default function HistoricoEndereco({ cep, numero, rua }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["historicoEndereco", cep, numero],
     queryFn: async () => {
-      const res = await base44.functions.invoke("historicoEnderecoIXC", { cep, numero, rua });
-      return res.data;
+      const res = await base44.functions.invoke("historicoClienteEndereco", { cpf_cnpj: "", logradouro: rua, numero });
+      return res.data?.resultados?.[0] || res.data;
     },
-    enabled: ativado && !!cep,
+    enabled: ativado && (!!cep || !!rua),
   });
 
   if (!cep) return null;

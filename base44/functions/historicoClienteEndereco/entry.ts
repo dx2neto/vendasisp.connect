@@ -133,7 +133,28 @@ Deno.serve(async (req) => {
     }
 
     const out = await consultarHistorico({ cpf: onlyDigits(cpf_cnpj), logradouro, numero });
-    return Response.json({ ok: true, ...out });
+
+    // Formata resposta para o frontend
+    const resultado = out.resultados[0] || {};
+    const historicos = resultado.ocupantes?.map(ocp => ({
+     id_cliente: ocp.id,
+     nome: ocp.nome,
+     endereco: logradouro,
+     ativo: ocp.status === 'S' || ocp.status === 'Ativo',
+     tem_divida: false, // Seria necessário consultar faturas
+     total_contratos: 0,
+     faturas_em_aberto: 0,
+     total_em_aberto: 0,
+    })) || [];
+
+    return Response.json({
+     data: {
+       success: true,
+       total_clientes_encontrados: historicos.length,
+       tem_risco: historicos.some(h => h.tem_divida || !h.ativo),
+       historicos,
+     }
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
