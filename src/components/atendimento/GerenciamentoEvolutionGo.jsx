@@ -25,6 +25,15 @@ export default function GerenciamentoEvolutionGo() {
     refetchInterval: 5000,
   });
 
+  const { data: instanciasAPI = { instances: [], ok: false } } = useQuery({
+    queryKey: ["evolutionInstances"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("gerenciarEvolution", { acao: "listar" });
+      return res.data;
+    },
+    refetchInterval: 10000,
+  });
+
   const evoStatus = evolutionStatus[0] || {};
 
   // Criar instância
@@ -50,11 +59,14 @@ export default function GerenciamentoEvolutionGo() {
       toast.success(`Instância "${nomeInstancia}" criada! ID: ${res.data.instanceId}`);
       setNomeInstancia("");
       qc.invalidateQueries({ queryKey: ["evolutionStatus"] });
+      qc.invalidateQueries({ queryKey: ["evolutionInstances"] });
 
       // Mostrar modal com instruções
       setTimeout(() => {
         toast.info("Copie o ID da instância e configure no secret EVOLUTION_INSTANCE_ID");
       }, 500);
+      
+      qc.invalidateQueries({ queryKey: ["evolutionInstances"] });
     } catch (e) {
       toast.error("Erro: " + e.message);
     } finally {
@@ -87,14 +99,15 @@ export default function GerenciamentoEvolutionGo() {
       }
 
       qc.invalidateQueries({ queryKey: ["evolutionStatus"] });
-    } catch (e) {
+      qc.invalidateQueries({ queryKey: ["evolutionInstances"] });
+      } catch (e) {
       toast.error("Erro: " + e.message);
-    } finally {
+      } finally {
       setConectando(false);
-    }
-  };
+      }
+      };
 
-  // Desconectar
+      // Desconectar
   const desconectar = async () => {
     if (!window.confirm("Desconectar o WhatsApp?")) return;
 
@@ -106,13 +119,14 @@ export default function GerenciamentoEvolutionGo() {
       if (res.data?.ok) {
         toast.success("Desconectado com sucesso");
         qc.invalidateQueries({ queryKey: ["evolutionStatus"] });
+        qc.invalidateQueries({ queryKey: ["evolutionInstances"] });
       }
-    } catch (e) {
+      } catch (e) {
       toast.error("Erro: " + e.message);
-    }
-  };
+      }
+      };
 
-  // Deletar instância
+      // Deletar instância
   const deletarInstancia = async () => {
     if (!window.confirm("Tem certeza? Isso deletará a instância do Evolution Go e limpará todos os dados locais.")) return;
 
@@ -124,13 +138,14 @@ export default function GerenciamentoEvolutionGo() {
       if (res.data?.ok) {
         toast.success("Instância deletada com sucesso");
         qc.invalidateQueries({ queryKey: ["evolutionStatus"] });
+        qc.invalidateQueries({ queryKey: ["evolutionInstances"] });
       } else {
         toast.error(res.data?.error || "Erro ao deletar");
       }
-    } catch (e) {
+      } catch (e) {
       toast.error("Erro: " + e.message);
-    }
-  };
+      }
+      };
 
   // Status badge
   const statusConfig = {
@@ -301,8 +316,45 @@ export default function GerenciamentoEvolutionGo() {
         </CardContent>
       </Card>
 
-      {/* QR Code Modal */}
-      <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
+      {/* Lista de Instâncias API */}
+      {instanciasAPI?.instances && instanciasAPI.instances.length > 0 && (
+        <Card className="rounded-2xl border border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Server className="w-4 h-4 text-primary" />
+              Todas as Instâncias ({instanciasAPI.instances.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {instanciasAPI.instances.map((inst) => (
+                <div key={inst.id} className="p-3 bg-muted/30 rounded-xl border border-border/50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{inst.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono break-all">{inst.id}</p>
+                      {inst.jid && <p className="text-xs text-muted-foreground mt-1">JID: {inst.jid}</p>}
+                    </div>
+                    <Badge
+                      className={cn(
+                        "text-xs whitespace-nowrap border",
+                        inst.connected
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                          : "bg-slate-50 text-slate-600 border-slate-200"
+                      )}
+                    >
+                      {inst.connected ? "🟢 Online" : "⚪ Offline"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+       {/* QR Code Modal */}
+       <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle>Escaneie o QR Code</DialogTitle>

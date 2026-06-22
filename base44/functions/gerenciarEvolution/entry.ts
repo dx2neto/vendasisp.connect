@@ -170,7 +170,24 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, message: 'Instância deletada com sucesso' });
     }
 
-    return Response.json({ error: 'Ação inválida. Use: status, criar, conectar, desconectar, qr, deletar' }, { status: 400 });
+    // === LISTAR TODAS AS INSTÂNCIAS ===
+    if (acao === 'listar') {
+      const resp = await fetch(`${EVOLUTION_URL}/instance/all`, {
+        method: 'GET',
+        headers,
+      });
+      const ret = await resp.json().catch(() => ({ data: [], message: 'Erro ao listar' }));
+
+      if (!resp.ok) return Response.json({ error: ret?.message || 'Erro ao listar instâncias' }, { status: 400 });
+
+      return Response.json({
+        ok: true,
+        instances: ret.data || [],
+        message: ret.message || 'success',
+      });
+    }
+
+    return Response.json({ error: 'Ação inválida. Use: status, criar, conectar, desconectar, qr, deletar, listar' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
