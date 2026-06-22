@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
     const telefone = conversa.contato_telefone;
     const EVOLUTION_URL = Deno.env.get('EVOLUTION_URL');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
+    const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
     let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
     if (!EVOLUTION_INSTANCE_ID) {
       const statuses = await db.entities.EvolutionStatus.list();
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': EVOLUTION_API_KEY,
+          'apikey': EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY,
           'instanceId': EVOLUTION_INSTANCE_ID,
         },
         body: JSON.stringify({ number: telefone, text: texto }),
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
 
       if (resp.ok) {
         const ret = await resp.json().catch(() => ({}));
-        waId = ret?.key?.id || ret?.messageId || null;
+        waId = ret?.data?.Info?.ID || ret?.Info?.ID || ret?.messageId || null;
         statusMsg = 'enviado';
       } else {
         statusMsg = 'erro';

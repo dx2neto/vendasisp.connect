@@ -278,6 +278,7 @@ Deno.serve(async (req) => {
     if (signerPhone && linkAssinatura) {
       const EVOLUTION_URL = Deno.env.get('EVOLUTION_URL');
       const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
+      const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
       let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
       if (!EVOLUTION_INSTANCE_ID) {
         const statuses = await base44.asServiceRole.entities.EvolutionStatus.list();
@@ -291,7 +292,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': EVOLUTION_API_KEY,
+            'apikey': EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY,
             'instanceId': EVOLUTION_INSTANCE_ID,
           },
           body: JSON.stringify({ number: signerPhone, text: mensagemWA }),

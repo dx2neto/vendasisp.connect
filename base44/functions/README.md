@@ -20,6 +20,7 @@ Os arquivos `ixcClient.js` e `zapsignClient.js` são módulos compartilhados (n�
 | `EVOLUTION_URL`  | URL raiz do Evolution Go                   | WhatsApp                 |
 | `EVOLUTION_API_KEY` | chave global do Evolution Go            | WhatsApp                 |
 | `EVOLUTION_INSTANCE_ID` | (opcional) UUID da instância          | WhatsApp                 |
+| `EVOLUTION_INSTANCE_TOKEN` | token específico retornado ao criar a instância | WhatsApp       |
 | `EVOLUTION_WEBHOOK_URL` | (opcional) URL pública do webhook     | WhatsApp                 |
 
 O token do IXC é gerado no painel IXC e **já vem no formato `id:hash`** — o client faz o base64.
