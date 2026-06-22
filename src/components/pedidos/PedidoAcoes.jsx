@@ -25,6 +25,7 @@ export default function PedidoAcoes({ pedido, lead }) {
   const [templateSelecionado, setTemplateSelecionado] = useState(null);
   const [result, setResult] = useState(null);
   const [baixandoRel, setBaixandoRel] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null);
 
   // Relatório de análise (PDF) — apenas admin/gerente
   const baixarRelatorio = async () => {
@@ -41,15 +42,17 @@ export default function PedidoAcoes({ pedido, lead }) {
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro ao gerar relatório'); }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `analise_${(pedido.lead_nome || 'cliente').replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setPdfUrl(url);
     } catch (e) {
       toast({ title: 'Erro ao gerar relatório', description: errorMessage(e), variant: 'destructive' });
     } finally {
       setBaixandoRel(false);
     }
+  };
+
+  const fecharRelatorio = () => {
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    setPdfUrl(null);
   };
 
   const invalidate = () => {
@@ -281,6 +284,21 @@ export default function PedidoAcoes({ pedido, lead }) {
               }
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Visualizador de Relatório PDF */}
+      <Dialog open={!!pdfUrl} onOpenChange={(open) => { if (!open) fecharRelatorio(); }}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] p-0 flex flex-col">
+          <DialogHeader className="px-5 py-3 border-b border-border flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-base">Relatório de Análise — {pedido.lead_nome}</DialogTitle>
+            <Button size="sm" variant="ghost" onClick={fecharRelatorio} className="rounded-lg">
+              Fechar
+            </Button>
+          </DialogHeader>
+          {pdfUrl && (
+            <iframe src={pdfUrl} className="flex-1 w-full border-0" title="Relatório PDF" />
+          )}
         </DialogContent>
       </Dialog>
     </div>
