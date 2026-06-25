@@ -163,8 +163,16 @@ Deno.serve(async (req) => {
     }
 
     const signerName = pedido.lead_nome || 'Cliente';
-    const signerEmail = lead?.email || '';
-    const signerPhone = (lead?.telefone || '').replace(/\D/g, '');
+    const signerEmail = pedido.customer_email || lead?.email || '';
+    const signerPhone = (pedido.customer_phone || lead?.telefone || '').replace(/\D/g, '');
+
+    // Config ZapSign (sandbox vs produção)
+    const configs = await base44.asServiceRole.entities.ConfigRegras.list();
+    const cfg = configs[0] || {};
+    const zapBaseUrl = cfg.zapsign_sandbox
+      ? 'https://sandbox.api.zapsign.com.br/api/v1'
+      : (cfg.zapsign_url_api || 'https://api.zapsign.com.br/api/v1/').replace(/\/+$/, '');
+    const authMode = signerPhone ? 'assinaturaTela-tokenWhatsApp' : 'assinaturaTela';
 
     // Plano + variáveis do IXC (#...#) preenchidas com os dados reais
     let plano = null;
@@ -197,13 +205,14 @@ Deno.serve(async (req) => {
       zapBody = {
         name: `Contrato - ${signerName}`,
         base64_pdf: pdfBase64,
+        external_id: pedido_id,
         signers: [
           {
             name: signerName,
             email: signerEmail || undefined,
             phone_country: '55',
             phone_number: signerPhone || undefined,
-            auth_mode: 'assinaturaTela',
+            auth_mode: authMode,
             send_automatic_email: !!signerEmail,
             send_automatic_whatsapp: !!signerPhone,
           },
@@ -216,13 +225,14 @@ Deno.serve(async (req) => {
       zapBody = {
         name: `Contrato - ${signerName}`,
         url_pdf: template_pdf_url || '',
+        external_id: pedido_id,
         signers: [
           {
             name: signerName,
             email: signerEmail || undefined,
             phone_country: '55',
             phone_number: signerPhone || undefined,
-            auth_mode: 'assinaturaTela',
+            auth_mode: authMode,
             send_automatic_email: !!signerEmail,
             send_automatic_whatsapp: !!signerPhone,
           },
@@ -234,7 +244,7 @@ Deno.serve(async (req) => {
 
     console.log(`Enviando documento ZapSign para: ${signerName} (${signerEmail || signerPhone || 'sem contato'})`);
 
-    const zapResp = await fetch('https://api.zapsign.com.br/api/v1/docs/', {
+    const zapResp = await fetch(`${zapBaseUrl}/docs/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -244,6 +254,13 @@ Deno.serve(async (req) => {
     });
 
     const zapData = await zapResp.json();
+
+    // Log da integração
+    await base44.asServiceRole.entities.IntegrationLog.create({
+      pedido_id, service: 'zapsign', step: 'criar_documento',
+      request: { ...zapBody, base64_pdf: zapBody.base64_pdf ? '[PDF base64]' : undefined },
+      response: zapData, ok: zapResp.ok,
+    }).catch(e => console.warn('Erro ao salvar IntegrationLog:', e.message));
 
     if (!zapResp.ok) {
       console.error('Erro ZapSign:', JSON.stringify(zapData));
@@ -270,6 +287,7 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.Pedido.update(pedido_id, {
       status: 'contrato_pendente',
       link_assinatura: linkAssinatura,
+      zapsign_doc_token: idZapsign,
       data_contrato: new Date().toISOString(),
     });
 

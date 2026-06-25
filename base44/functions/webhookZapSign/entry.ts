@@ -1,7 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Webhook chamado pelo ZapSign quando um documento é assinado.
+// Webhook chamado pelo ZapSign quando um documento muda de status.
 // Registre em: ZapSign > Configurações > Webhooks > URL desta função.
+// Sempre responde HTTP 200 para o ZapSign não reenviar indefinidamente.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -12,57 +13,89 @@ Deno.serve(async (req) => {
     const docToken = body?.document?.token || body?.token || '';
 
     if (!docToken) {
-      return Response.json({ error: 'token do documento ausente' }, { status: 400 });
+      return Response.json({ ok: false, msg: 'token do documento ausente' });
     }
 
-    // Apenas processa eventos de assinatura concluída
-    const eventAction = body?.event_action || body?.action || '';
+    // Identifica o evento (doc_signed, doc_refused, doc_created, doc_deleted, email_bounce)
+    const eventAction = body?.event_action || body?.action || body?.event || body?.type || '';
     const isAssinado = !eventAction || eventAction === 'sign_doc' || eventAction === 'doc_signed';
-    if (!isAssinado) {
+    const isRecusado = eventAction === 'doc_refused';
+
+    if (!isAssinado && !isRecusado) {
       return Response.json({ ok: true, msg: `Evento ignorado: ${eventAction}` });
     }
 
     // Busca o contrato pelo token ZapSign
-    const contratos = await base44.asServiceRole.entities.Contrato.filter({ id_zapsign: docToken });
-    if (!contratos || contratos.length === 0) {
+    let contratos = await base44.asServiceRole.entities.Contrato.filter({ id_zapsign: docToken });
+
+    // Fallback: identifica a venda por external_id (pedido_id)
+    let pedidoIdByExternal = '';
+    if ((!contratos || contratos.length === 0) && (body?.external_id || body?.document?.external_id)) {
+      pedidoIdByExternal = String(body.external_id || body.document.external_id);
+    }
+
+    if ((!contratos || contratos.length === 0) && !pedidoIdByExternal) {
       return Response.json({ ok: true, msg: 'Contrato não encontrado, ignorado' });
     }
 
-    const contrato = contratos[0];
-    const jaAssinado = contrato.status === 'assinado'; // re-entrega do webhook?
+    const contrato = contratos[0] || null;
+    const jaAssinado = contrato?.status === 'assinado';
     const agora = new Date().toISOString();
-    const urlPdf = body?.document?.signed_file || body?.signed_file || contrato.url_pdf || '';
+    const urlPdf = body?.document?.signed_file || body?.signed_file || contrato?.url_pdf || '';
 
-    // Captura IP/navegador do assinante (se o ZapSign enviar)
+    // Log do webhook
+    await base44.asServiceRole.entities.IntegrationLog.create({
+      pedido_id: contrato?.pedido_id || pedidoIdByExternal || '',
+      service: 'zapsign', step: `webhook_${eventAction || 'signed'}`,
+      request: body, response: { found: !!contrato, external_id: pedidoIdByExternal }, ok: true,
+    }).catch(e => console.warn('Erro ao salvar IntegrationLog:', e.message));
+
+    // ── Documento RECUSADO ──────────────────────────────────────────────────
+    if (isRecusado) {
+      if (contrato) {
+        await base44.asServiceRole.entities.Contrato.update(contrato.id, { status: 'recusado', data_assinatura: agora });
+      }
+      const pidRecusa = contrato?.pedido_id || pedidoIdByExternal;
+      if (pidRecusa) {
+        await base44.asServiceRole.entities.Pedido.update(pidRecusa, { status: 'recusado' }).catch(() => null);
+      }
+      return Response.json({ ok: true, msg: 'Documento recusado processado' });
+    }
+
+    // ── Documento ASSINADO ──────────────────────────────────────────────────
     const signer0 = (body?.signers || body?.document?.signers || [])[0] || {};
     const ipAssinante = signer0.ip || signer0.signer_ip || body?.ip || '';
     const navAssinante = signer0.user_agent || signer0.device || body?.user_agent || '';
 
     // 1. Atualiza o contrato → assinado
-    await base44.asServiceRole.entities.Contrato.update(contrato.id, {
-      status: 'assinado',
-      data_assinatura: agora,
-      url_pdf: urlPdf,
-      ...(ipAssinante ? { ip_assinante: ipAssinante } : {}),
-      ...(navAssinante ? { navegador_assinante: navAssinante } : {}),
-    });
+    if (contrato) {
+      await base44.asServiceRole.entities.Contrato.update(contrato.id, {
+        status: 'assinado',
+        data_assinatura: agora,
+        url_pdf: urlPdf,
+        ...(ipAssinante ? { ip_assinante: ipAssinante } : {}),
+        ...(navAssinante ? { navegador_assinante: navAssinante } : {}),
+      });
+    }
 
     let pedido = null;
     let notificacaoEnviada = false;
+    const pidAssinatura = contrato?.pedido_id || pedidoIdByExternal;
 
-    if (contrato.pedido_id) {
-      pedido = await base44.asServiceRole.entities.Pedido.get(contrato.pedido_id);
+    if (pidAssinatura) {
+      pedido = await base44.asServiceRole.entities.Pedido.get(pidAssinatura);
 
       if (pedido) {
-        // 2. Avança o pedido para "assinado" (aceita contrato_pendente ou qualquer status anterior)
+        // 2. Avança o pedido para "assinado"
         const statusNaoFinalizado = !['assinado', 'ativado', 'recusado'].includes(pedido.status);
         if (statusNaoFinalizado) {
-          await base44.asServiceRole.entities.Pedido.update(contrato.pedido_id, {
+          await base44.asServiceRole.entities.Pedido.update(pidAssinatura, {
             status: 'assinado',
             data_contrato: agora,
             link_assinatura: urlPdf || pedido.link_assinatura,
+            signed_file_url: urlPdf || '',
           });
-          console.log(`Pedido ${contrato.pedido_id} avançado para "assinado"`);
+          console.log(`Pedido ${pidAssinatura} avançado para "assinado"`);
         }
 
         // 3. Atualiza etapa do lead
@@ -78,7 +111,6 @@ Deno.serve(async (req) => {
           : null;
         const vendedorEmail = vendedor?.email || '';
 
-        // Evita e-mail duplicado: só notifica se ainda não foi assinado/notificado
         const podeNotificar = vendedorEmail && !jaAssinado && !pedido.email_assinatura_enviado;
         if (podeNotificar) {
           await base44.asServiceRole.integrations.Core.SendEmail({
@@ -87,7 +119,7 @@ Deno.serve(async (req) => {
             subject: `✅ Contrato assinado: ${pedido.lead_nome}`,
             body: `Olá ${pedido.vendedor_nome || 'Vendedor'},\n\n🎉 O cliente ${pedido.lead_nome} assinou o contrato no ZapSign!\n\nO status do pedido foi atualizado automaticamente para "Assinado".\n\nPróximos passos:\n1. Verificar viabilidade técnica (se ainda pendente)\n2. Ativar cliente no IXC\n3. Registrar OS de instalação\n\nAcesse o CRM para prosseguir.\n\n---\nEsta é uma mensagem automática. Não responda este e-mail.`,
           });
-          await base44.asServiceRole.entities.Pedido.update(contrato.pedido_id, { email_assinatura_enviado: true }).catch(() => null);
+          await base44.asServiceRole.entities.Pedido.update(pidAssinatura, { email_assinatura_enviado: true }).catch(() => null);
           notificacaoEnviada = true;
           console.log(`E-mail de notificação enviado para ${vendedorEmail}`);
         } else if (!vendedorEmail) {
@@ -98,12 +130,13 @@ Deno.serve(async (req) => {
 
     return Response.json({
       ok: true,
-      contrato_id: contrato.id,
-      pedido_id: contrato.pedido_id || null,
+      contrato_id: contrato?.id || null,
+      pedido_id: pidAssinatura || null,
       notificacao_enviada: notificacaoEnviada,
     });
   } catch (error) {
     console.error('Erro no webhook ZapSign:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+    // Sempre responde 200 para o ZapSign não reenviar indefinidamente
+    return Response.json({ ok: false, error: error.message });
   }
 });
