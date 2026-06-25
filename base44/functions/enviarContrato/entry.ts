@@ -83,52 +83,67 @@ function _dataExtenso(d = new Date()) { const M = ['janeiro', 'fevereiro', 'mar�
 
 function montarVarsIXC(lead, pedido, plano) {
   lead = lead || {}; pedido = pedido || {}; plano = plano || {};
-  const doc = lead.cnpj_cpf || pedido.lead_cpf || '';
-  const cidade = lead.cidade_nome || lead.cidade || '';
-  const uf = lead.uf || '';
-  const tel = lead.telefone || '';
+  const doc = pedido.lead_cpf || lead.cnpj_cpf || '';
+  const addr = pedido.install_address || {};
+  const empresa = pedido.empresa || {};
+  const clientExtra = pedido.client_extra || {};
   const valor = pedido.valor != null ? pedido.valor : (plano.preco_mensal || 0);
   const brl = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+  // Data de ativação: usa data_ativacao do pedido, senão hoje
+  const dataAtivacao = pedido.data_ativacao ? new Date(pedido.data_ativacao) : new Date();
+  const dataCurta = dataAtivacao.toLocaleDateString('pt-BR');
+
+  // Tabela de comodato a partir de equipamentos
+  let gradeComodato = '';
+  if (Array.isArray(pedido.equipamentos) && pedido.equipamentos.length) {
+    const linhas = pedido.equipamentos
+      .map(eq => `<tr><td>${eq.descricao || ''}</td><td>${eq.quantidade || 1}</td></tr>`)
+      .join('');
+    gradeComodato = `<table border="1" cellpadding="4" cellspacing="0"><thead><tr><th>Descrição</th><th>Quantidade</th></tr></thead><tbody>${linhas}</tbody></table>`;
+  }
+
   return {
-    cliente_razao: lead.nome || pedido.lead_nome || '',
-    cliente_fantasia: lead.fantasia || '',
+    cliente_razao: pedido.lead_nome || lead.nome || '',
+    cliente_fantasia: empresa.nome_fantasia || '',
     cliente_cnpj_cpf: _fmtDoc(doc),
-    cliente_rg_ie: lead.rg || lead.ie || '',
-    cliente_inscricao_municipal: lead.inscricao_municipal || '',
-    cliente_endereco: lead.rua || lead.endereco || '',
-    cliente_numero: lead.numero || '',
-    cliente_complemento: lead.complemento || '',
-    cliente_cep: _fmtCep(lead.cep),
-    cliente_bairro: lead.bairro || '',
-    cliente_cidade: cidade,
-    cliente_uf: uf,
-    cliente_celular: _fmtFone(tel),
-    cliente_fone: _fmtFone(lead.telefone_fixo || tel),
-    cliente_fone_comercial: _fmtFone(lead.telefone_comercial || ''),
-    cliente_email: lead.email || '',
-    cliente_nome_representante_1: lead.representante_nome || '',
-    cliente_cpf_representante_1: _fmtDoc(lead.representante_cpf || ''),
-    cliente_identidade_representante_1: lead.representante_rg || '',
-    contrato_endereco: lead.rua || lead.endereco || '',
-    contrato_endereco_numero: lead.numero || '',
-    contrato_complemento: lead.complemento || '',
-    contrato_cep: _fmtCep(lead.cep),
-    contrato_bairro: lead.bairro || '',
-    contrato_cidade: cidade,
-    contrato_uf: uf,
-    contrato_data_ativacao_renovacao_extenso: _dataExtenso(),
-    contrato_grade_comodato_sem_val: '',
-    tipo_de_conexao: plano.tipo_conexao || 'Fibra',
+    cliente_rg_ie: pedido.rg || lead.rg || '',
+    cliente_inscricao_municipal: empresa.inscricao_municipal || '',
+    cliente_endereco: addr.endereco || lead.rua || '',
+    cliente_numero: addr.numero || lead.numero || '',
+    cliente_complemento: addr.complemento || lead.complemento || '',
+    cliente_cep: _fmtCep(addr.cep || lead.cep),
+    cliente_bairro: addr.bairro || lead.bairro || '',
+    cliente_cidade: addr.cidade || lead.cidade_nome || '',
+    cliente_uf: addr.estado || lead.uf || '',
+    cliente_celular: _fmtFone(pedido.customer_phone || lead.telefone || ''),
+    cliente_fone: _fmtFone(pedido.telefone_fixo || lead.telefone || ''),
+    cliente_fone_comercial: _fmtFone(clientExtra.telefone_trabalho || ''),
+    cliente_email: pedido.customer_email || lead.email || '',
+    cliente_nome_representante_1: empresa.responsavel_legal || '',
+    cliente_cpf_representante_1: _fmtDoc(empresa.cpf_responsavel || ''),
+    cliente_identidade_representante_1: empresa.rg_responsavel || '',
+    contrato_endereco: addr.endereco || lead.rua || '',
+    contrato_endereco_numero: addr.numero || lead.numero || '',
+    contrato_complemento: addr.complemento || lead.complemento || '',
+    contrato_cep: _fmtCep(addr.cep || lead.cep),
+    contrato_bairro: addr.bairro || lead.bairro || '',
+    contrato_cidade: addr.cidade || lead.cidade_nome || '',
+    contrato_uf: addr.estado || lead.uf || '',
+    contrato_vencimento_dia: String(pedido.due_day || ''),
+    contrato_data_ativacao_renovacao: dataCurta,
+    contrato_data_ativacao_renovacao_extenso: _dataExtenso(dataAtivacao),
+    tipo_de_conexao: pedido.connection_type || 'Fibra',
+    contrato_grade_comodato_sem_val: gradeComodato,
     plano_nome: plano.nome || pedido.plano_nome || '',
     plano_velocidade: plano.velocidade_mbps ? `${plano.velocidade_mbps} Mbps` : '',
     valor: brl(valor), plano_valor: brl(valor), valor_mensal: brl(valor),
-    fidelidade: pedido.fidelidade || '12 meses',
-    vencimento_dia: pedido.vencimento_dia || pedido.vencimento || '',
+    fidelidade: pedido.loyalty ? `${pedido.loyalty} meses` : '',
     vendedor_nome: pedido.vendedor_nome || '',
     data_contrato: new Date().toLocaleDateString('pt-BR'),
     data_hoje: new Date().toLocaleDateString('pt-BR'),
     data_extenso: _dataExtenso(),
-    cidade_contrato: cidade,
+    cidade_contrato: addr.cidade || lead.cidade_nome || '',
   };
 }
 
@@ -188,7 +203,13 @@ Deno.serve(async (req) => {
       const partes = [];
       for (const tid of plano.template_ids) {
         const tpl = await base44.asServiceRole.entities.TemplateContrato.get(tid).catch(() => null);
-        if (tpl?.conteudo) partes.push(tpl.conteudo);
+        if (!tpl?.conteudo) continue;
+        // Filtra contratos por tipo conforme regras de venda:
+        // adesao = sempre | permanencia = só se loyalty > 0 | comodato = só se equipamentos não vazio
+        const tipo = String(tpl.tipo_modelo || '').toLowerCase();
+        if (tipo.includes('permanen') && !(pedido.loyalty > 0)) continue;
+        if (tipo.includes('comodat') && !(Array.isArray(pedido.equipamentos) && pedido.equipamentos.length)) continue;
+        partes.push(tpl.conteudo);
       }
       conteudoFinal = partes.join('\n\n<hr/>\n\n');
     }
