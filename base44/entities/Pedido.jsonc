@@ -54,17 +54,20 @@
     "id_os_ixc": {
       "type": "string"
     },
+    "id_login_ixc": {
+      "type": "string",
+      "description": "ID do acesso/login no IXC (radusuarios)"
+    },
     "link_assinatura": {
       "type": "string"
     },
     "relatorio_pedido_url": {
       "type": "string",
-      "description": "URL do relatório do pedido em PDF"
+      "description": "URL do relat\u00f3rio do pedido em PDF"
     },
     "data_relatorio": {
       "type": "string",
-      "format": "date-time",
-      "description": "Data de geração do relatório"
+      "format": "date-time"
     },
     "sincronizado_ixc": {
       "type": "boolean",
@@ -72,8 +75,7 @@
     },
     "email_assinatura_enviado": {
       "type": "boolean",
-      "default": false,
-      "description": "Evita notificação duplicada de contrato assinado"
+      "default": false
     },
     "data_credito": {
       "type": "string",
@@ -96,6 +98,289 @@
     },
     "observacao": {
       "type": "string"
+    },
+    "credit_status": {
+      "type": "string",
+      "enum": [
+        "aprovado",
+        "reprovado",
+        "erro",
+        null
+      ],
+      "description": "Resultado da consulta de cr\u00e9dito (vazio = n\u00e3o consultado)"
+    },
+    "credit_score": {
+      "type": "number",
+      "description": "Nota Serasa (se houver)"
+    },
+    "credit_response": {
+      "type": "object",
+      "description": "Retorno bruto da consulta (auditoria)"
+    },
+    "credit_checked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "access_type": {
+      "type": "string",
+      "enum": [
+        "residencial",
+        "empresarial"
+      ]
+    },
+    "is_client": {
+      "type": "string",
+      "enum": [
+        "nao",
+        "fibra",
+        "radio"
+      ],
+      "description": "J\u00e1 \u00e9 cliente?"
+    },
+    "connection_type": {
+      "type": "string",
+      "description": "Fibra ou R\u00e1dio (#tipo_de_conexao#)"
+    },
+    "customer_email": {
+      "type": "string"
+    },
+    "customer_phone": {
+      "type": "string",
+      "description": "WhatsApp (s\u00f3 d\u00edgitos: 55+DDD+n\u00ba)"
+    },
+    "telefone_fixo": {
+      "type": "string"
+    },
+    "rg": {
+      "type": "string"
+    },
+    "birth_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "addons": {
+      "type": "object",
+      "description": "TV / SVA adicionais"
+    },
+    "coupon_code": {
+      "type": "string"
+    },
+    "loyalty": {
+      "type": "number",
+      "default": 0,
+      "description": "Meses de fidelidade (0 = sem perman\u00eancia)"
+    },
+    "due_day": {
+      "type": "number",
+      "description": "5 | 10 | 15 | 20 (#contrato_vencimento_dia#)"
+    },
+    "install_address": {
+      "type": "object",
+      "description": "Endere\u00e7o de instala\u00e7\u00e3o",
+      "properties": {
+        "cep": {
+          "type": "string"
+        },
+        "cidade": {
+          "type": "string"
+        },
+        "estado": {
+          "type": "string"
+        },
+        "endereco": {
+          "type": "string"
+        },
+        "numero": {
+          "type": "string"
+        },
+        "complemento": {
+          "type": "string"
+        },
+        "bairro": {
+          "type": "string"
+        }
+      }
+    },
+    "billing_same_as_install": {
+      "type": "boolean",
+      "default": true
+    },
+    "billing_address": {
+      "type": "object",
+      "description": "Endere\u00e7o de cobran\u00e7a (se billing_same_as_install = false)",
+      "properties": {
+        "cep": {
+          "type": "string"
+        },
+        "cidade": {
+          "type": "string"
+        },
+        "estado": {
+          "type": "string"
+        },
+        "endereco": {
+          "type": "string"
+        },
+        "numero": {
+          "type": "string"
+        },
+        "complemento": {
+          "type": "string"
+        },
+        "bairro": {
+          "type": "string"
+        }
+      }
+    },
+    "empresa": {
+      "type": "object",
+      "description": "Dados de PJ (quando empresarial)",
+      "properties": {
+        "nome_fantasia": {
+          "type": "string"
+        },
+        "inscricao_municipal": {
+          "type": "string"
+        },
+        "responsavel_legal": {
+          "type": "string"
+        },
+        "cpf_responsavel": {
+          "type": "string"
+        },
+        "rg_responsavel": {
+          "type": "string"
+        }
+      }
+    },
+    "client_extra": {
+      "type": "object",
+      "description": "Dados complementares do cliente",
+      "properties": {
+        "estado_civil": {
+          "type": "string"
+        },
+        "moradia": {
+          "type": "string"
+        },
+        "tempo_reside": {
+          "type": "string"
+        },
+        "nome_locador": {
+          "type": "string"
+        },
+        "tel_locador": {
+          "type": "string"
+        },
+        "casa_unica": {
+          "type": "string"
+        },
+        "quem_mora": {
+          "type": "string"
+        },
+        "profissao": {
+          "type": "string"
+        },
+        "local_trabalho": {
+          "type": "string"
+        },
+        "telefone_trabalho": {
+          "type": "string"
+        },
+        "observacao": {
+          "type": "string"
+        }
+      }
+    },
+    "extra_data": {
+      "type": "object",
+      "description": "Dados de familiares e refer\u00eancias",
+      "properties": {
+        "nome_pai": {
+          "type": "string"
+        },
+        "tel_pai": {
+          "type": "string"
+        },
+        "nome_mae": {
+          "type": "string"
+        },
+        "tel_mae": {
+          "type": "string"
+        },
+        "nome_conjuge": {
+          "type": "string"
+        },
+        "tel_conjuge": {
+          "type": "string"
+        },
+        "cpf_conjuge": {
+          "type": "string"
+        },
+        "nome_referencia": {
+          "type": "string"
+        },
+        "tel_referencia": {
+          "type": "string"
+        }
+      }
+    },
+    "equipamentos": {
+      "type": "array",
+      "description": "Itens de comodato",
+      "items": {
+        "type": "object",
+        "properties": {
+          "descricao": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "documents": {
+      "type": "object",
+      "description": "URLs dos documentos no storage",
+      "properties": {
+        "selfie": {
+          "type": "string"
+        },
+        "doc_frente": {
+          "type": "string"
+        },
+        "doc_verso": {
+          "type": "string"
+        },
+        "comp_residencia": {
+          "type": "string"
+        }
+      }
+    },
+    "terms_accepted": {
+      "type": "boolean",
+      "default": false
+    },
+    "how_found": {
+      "type": "string",
+      "description": "Como voc\u00ea chegou at\u00e9 n\u00f3s?"
+    },
+    "zapsign_doc_token": {
+      "type": "string"
+    },
+    "signed_file_url": {
+      "type": "string",
+      "description": "PDF assinado (baixado do ZapSign)"
+    },
+    "integration_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ok",
+        "error"
+      ],
+      "description": "Status geral das integra\u00e7\u00f5es"
     }
   },
   "required": [

@@ -1,0 +1,42 @@
+{
+  "name": "IntegrationLog",
+  "type": "object",
+  "properties": {
+    "pedido_id": {
+      "type": "string",
+      "description": "ID do Pedido (venda) relacionado"
+    },
+    "service": {
+      "type": "string",
+      "enum": [
+        "credito",
+        "ixc",
+        "zapsign",
+        "evolution"
+      ],
+      "description": "Servi\u00e7o de integra\u00e7\u00e3o"
+    },
+    "step": {
+      "type": "string",
+      "description": "Etapa executada (ex.: criar_cliente, enviar_contrato)"
+    },
+    "request": {
+      "type": "object",
+      "description": "Dados enviados na requisi\u00e7\u00e3o"
+    },
+    "response": {
+      "type": "object",
+      "description": "Resposta recebida do servi\u00e7o"
+    },
+    "ok": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a etapa foi bem-sucedida"
+    }
+  },
+  "required": [
+    "pedido_id",
+    "service",
+    "step"
+  ]
+}

@@ -9,7 +9,8 @@
         "admin",
         "gerente",
         "vendedor",
-        "revendedor"
+        "revendedor",
+        "parceiro"
       ],
       "default": "vendedor"
     },
@@ -27,7 +28,7 @@
     },
     "parceiro_codigo": {
       "type": "string",
-      "description": "C\u00f3digo de parceiro \u00fanico (para revendedores)"
+      "description": "C\u00f3digo de parceiro \u00fanico (usado no link /assinar?v=...)"
     },
     "ativo": {
       "type": "boolean",

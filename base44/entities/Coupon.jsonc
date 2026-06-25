@@ -1,0 +1,31 @@
+{
+  "name": "Coupon",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo do cupom (ex.: PROMO10)"
+    },
+    "discount_type": {
+      "type": "string",
+      "enum": [
+        "percent",
+        "value"
+      ],
+      "description": "percent = desconto percentual, value = desconto em reais"
+    },
+    "discount_value": {
+      "type": "number",
+      "description": "Valor do desconto (percentual ou em reais)"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "code",
+    "discount_type",
+    "discount_value"
+  ]
+}

@@ -10,6 +10,32 @@
       "type": "number",
       "default": 30
     },
+    "credit_decision_mode": {
+      "type": "string",
+      "enum": [
+        "motor",
+        "score"
+      ],
+      "default": "score",
+      "description": "Modo de decis\u00e3o de cr\u00e9dito: motor (decis\u00e3o da API) ou score (nota m\u00ednima)"
+    },
+    "credit_approve_score": {
+      "type": "number",
+      "description": "Nota m\u00ednima para aprovar (modo score)"
+    },
+    "credit_block_on_restriction": {
+      "type": "boolean",
+      "default": true,
+      "description": "Reprova se houver restri\u00e7\u00e3o ativa"
+    },
+    "credit_score_path": {
+      "type": "string",
+      "description": "Caminho do score na resposta da API"
+    },
+    "credit_decision_path": {
+      "type": "string",
+      "description": "Caminho da decis\u00e3o na resposta (modo motor)"
+    },
     "comissao_percentual_padrao": {
       "type": "number",
       "default": 5
@@ -63,6 +89,14 @@
     "zapsign_url_api": {
       "type": "string",
       "default": "https://api.zapsign.com.br/api/v1/"
+    },
+    "zapsign_sandbox": {
+      "type": "boolean",
+      "default": false
+    },
+    "evo_instance": {
+      "type": "string",
+      "description": "Nome da inst\u00e2ncia do Evolution Go"
     }
   },
   "required": []

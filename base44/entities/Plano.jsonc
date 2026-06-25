@@ -5,8 +5,24 @@
     "nome": {
       "type": "string"
     },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "internet",
+        "tv"
+      ],
+      "default": "internet"
+    },
     "velocidade_mbps": {
       "type": "number"
+    },
+    "velocidade_download": {
+      "type": "string",
+      "description": "Ex.: 300Mbps"
+    },
+    "velocidade_upload": {
+      "type": "string",
+      "description": "Ex.: 150Mbps"
     },
     "preco_mensal": {
       "type": "number"
@@ -14,11 +30,16 @@
     "descricao": {
       "type": "string"
     },
+    "info_instalacao": {
+      "type": "string",
+      "description": "Ex.: Instala\u00e7\u00e3o gr\u00e1tis"
+    },
     "id_modelo_ixc": {
       "type": "string"
     },
     "id_produto_ixc": {
-      "type": "string"
+      "type": "string",
+      "description": "ID do produto/plano no IXC (mapeamento)"
     },
     "template_ids": {
       "type": "array",
