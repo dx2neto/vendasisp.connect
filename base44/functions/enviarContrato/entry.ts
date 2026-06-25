@@ -294,26 +294,28 @@ Deno.serve(async (req) => {
     // Envia link do contrato via WhatsApp pelo Evolution Go
     let whatsappEnviado = false;
     if (signerPhone && linkAssinatura) {
-      const EVOLUTION_URL = Deno.env.get('EVOLUTION_URL');
+      const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/+$/, '');
       const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
       const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
       let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
+      let instanceName = '';
       if (!EVOLUTION_INSTANCE_ID) {
         const statuses = await base44.asServiceRole.entities.EvolutionStatus.list();
         EVOLUTION_INSTANCE_ID = statuses[0]?.instance_id || '';
+        instanceName = statuses[0]?.instance_name || '';
       }
+      const instancePath = instanceName || EVOLUTION_INSTANCE_ID;
 
-      if (EVOLUTION_URL && EVOLUTION_API_KEY && EVOLUTION_INSTANCE_ID) {
+      if (EVOLUTION_URL && EVOLUTION_API_KEY && instancePath) {
         const mensagemWA = `Olá, ${signerName}! 👋\n\nSeu contrato está pronto para assinatura digital.\n\n✍️ *Assine agora clicando no link abaixo:*\n${linkAssinatura}\n\n_Este link é exclusivo para você. Qualquer dúvida, entre em contato conosco._`;
 
-        const waResp = await fetch(`${EVOLUTION_URL}/send/text`, {
+        const waResp = await fetch(`${EVOLUTION_URL}/message/sendText/${instancePath}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY,
-            'instanceId': EVOLUTION_INSTANCE_ID,
           },
-          body: JSON.stringify({ number: signerPhone, text: mensagemWA }),
+          body: JSON.stringify({ number: signerPhone, text: mensagemWA, linkPreview: true }),
         });
 
         whatsappEnviado = waResp.ok;

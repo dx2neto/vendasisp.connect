@@ -14,27 +14,30 @@ Deno.serve(async (req) => {
     if (!conversa) return Response.json({ error: 'Conversa não encontrada' }, { status: 404 });
 
     const telefone = conversa.contato_telefone;
-    const EVOLUTION_URL = Deno.env.get('EVOLUTION_URL');
+    const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/+$/, '');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
     const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
     let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
+    let instanceName = '';
     if (!EVOLUTION_INSTANCE_ID) {
       const statuses = await db.entities.EvolutionStatus.list();
       EVOLUTION_INSTANCE_ID = statuses[0]?.instance_id || '';
+      instanceName = statuses[0]?.instance_name || '';
     }
+    // Evolution Go: o path usa o NOME da instância; fallback p/ ID
+    const instancePath = instanceName || EVOLUTION_INSTANCE_ID;
 
     let waId = null;
     let statusMsg = 'enviado';
 
-    if (EVOLUTION_URL && EVOLUTION_API_KEY && EVOLUTION_INSTANCE_ID) {
-      const resp = await fetch(`${EVOLUTION_URL}/send/text`, {
+    if (EVOLUTION_URL && EVOLUTION_API_KEY && instancePath) {
+      const resp = await fetch(`${EVOLUTION_URL}/message/sendText/${instancePath}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY,
-          'instanceId': EVOLUTION_INSTANCE_ID,
         },
-        body: JSON.stringify({ number: telefone, text: texto }),
+        body: JSON.stringify({ number: telefone, text: texto, linkPreview: true }),
       });
 
       if (resp.ok) {
