@@ -655,39 +655,64 @@ function EtapaContrato({ endereco, plano, dados, docs, onSubmit, isLoading, link
 }
 
 // ─── Etapa 5: Confirmação ─────────────────────────────────────────────────────
-function EtapaConfirmacao({ plano, endereco, dados, onNova }) {
+function EtapaConfirmacao({ plano, endereco, dados, resultado, onNova }) {
+  const reprovado = resultado === 'reprovado';
+  const manual = resultado === 'manual';
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
       <div className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold text-center text-gray-800">SOLICITAÇÃO DE ASSINATURA RECEBIDA</h1>
+        <h1 className="text-2xl font-bold text-center text-gray-800">
+          {reprovado ? 'ASSINATURA NÃO APROVADA' : manual ? 'ANÁLISE EM ANDAMENTO' : 'SOLICITAÇÃO DE ASSINATURA RECEBIDA'}
+        </h1>
         <div className="bg-white rounded-xl border border-gray-200 p-6 text-center space-y-5">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle className="w-9 h-9 text-emerald-500" />
+          <div className={cn("w-16 h-16 rounded-full flex items-center justify-center mx-auto",
+            reprovado ? "bg-red-100" : manual ? "bg-yellow-100" : "bg-emerald-100")}>
+            {reprovado
+              ? <X className="w-9 h-9 text-red-500" />
+              : manual
+                ? <Loader2 className="w-9 h-9 text-yellow-500" />
+                : <CheckCircle className="w-9 h-9 text-emerald-500" />}
           </div>
-          <h2 className="text-xl font-bold text-primary">OBRIGADO POR ESCOLHER A CONNECT TELECOM!</h2>
 
-          <div className="bg-primary text-white rounded-xl p-4 text-left space-y-2">
-            <p className="font-bold text-sm uppercase">Itens contratados</p>
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-1"><Wifi className="w-4 h-4" /> {plano.plano.nome}</span>
-              <span className="font-bold">{fmtBRL(plano.total)}/mês</span>
+          {reprovado ? (
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-red-600">CRÉDITO NÃO APROVADO</h2>
+              <p className="text-sm text-gray-600">Infelizmente sua análise de crédito não foi aprovada no momento. Nossa equipe entrará em contato para mais detalhes.</p>
             </div>
-            <div className="border-t border-white/30 pt-2 flex justify-between font-bold text-sm">
-              <span>TOTAL</span><span>{fmtBRL(plano.total)}/MENSALIDADE</span>
+          ) : manual ? (
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-yellow-600">ANÁLISE DE CRÉDITO EM VERIFICAÇÃO</h2>
+              <p className="text-sm text-gray-600">Sua assinatura foi recebida e está em análise manual de crédito. Assim que for aprovada, você receberá o link de assinatura digital.</p>
             </div>
-          </div>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold text-primary">OBRIGADO POR ESCOLHER A CONNECT TELECOM!</h2>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-left text-sm text-yellow-800 space-y-1">
-            <p className="font-semibold">📧 Próximos passos:</p>
-            <p>1. Você receberá um <strong>link de assinatura digital</strong> no e-mail <strong>{endereco.email}</strong></p>
-            <p>2. Nossa equipe entrará em contato para <strong>agendar a instalação</strong></p>
-            <p>3. Após a instalação, seu serviço será <strong>ativado automaticamente</strong></p>
-          </div>
+              <div className="bg-primary text-white rounded-xl p-4 text-left space-y-2">
+                <p className="font-bold text-sm uppercase">Itens contratados</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1"><Wifi className="w-4 h-4" /> {plano.plano.nome}</span>
+                  <span className="font-bold">{fmtBRL(plano.total)}/mês</span>
+                </div>
+                <div className="border-t border-white/30 pt-2 flex justify-between font-bold text-sm">
+                  <span>TOTAL</span><span>{fmtBRL(plano.total)}/MENSALIDADE</span>
+                </div>
+              </div>
 
-          <div className="text-left text-sm text-gray-600 space-y-1">
-            <p>Dúvidas? Entre em contato: <strong>falar@connecttelecom.com.br</strong></p>
-            <p className="font-semibold text-gray-700">Equipe Connect Telecom</p>
-          </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-left text-sm text-yellow-800 space-y-1">
+                <p className="font-semibold">📧 Próximos passos:</p>
+                <p>1. Você receberá um <strong>link de assinatura digital</strong> no e-mail <strong>{endereco.email}</strong></p>
+                <p>2. Nossa equipe entrará em contato para <strong>agendar a instalação</strong></p>
+                <p>3. Após a instalação, seu serviço será <strong>ativado automaticamente</strong></p>
+              </div>
+
+              <div className="text-left text-sm text-gray-600 space-y-1">
+                <p>Dúvidas? Entre em contato: <strong>falar@connecttelecom.com.br</strong></p>
+                <p className="font-semibold text-gray-700">Equipe Connect Telecom</p>
+              </div>
+            </>
+          )}
 
           <Button className="w-full rounded-xl font-bold" onClick={onNova}>NOVA ASSINATURA</Button>
         </div>
@@ -704,6 +729,7 @@ export default function Assinatura() {
   const [dados, setDados] = useState(null);
   const [docs, setDocs] = useState(null);
   const [linkAssinatura, setLinkAssinatura] = useState(null);
+  const [resultado, setResultado] = useState(null);
 
   const urlParams = new URLSearchParams(window.location.search);
   const vendedorId = urlParams.get("v") || null;
@@ -728,6 +754,7 @@ export default function Assinatura() {
       return res.data;
     },
     onSuccess: (data) => {
+      if (data?.resultado) setResultado(data.resultado);
       if (data?.done) { setEtapa(5); return; }
       if (data?.link_assinatura) {
         setLinkAssinatura(data.link_assinatura);
@@ -742,7 +769,7 @@ export default function Assinatura() {
 
   const reset = () => {
     setEtapa(0); setEndereco(null); setPlanoInfo(null);
-    setDados(null); setDocs(null); setLinkAssinatura(null);
+    setDados(null); setDocs(null); setLinkAssinatura(null); setResultado(null);
   };
 
   if (etapa === 0) return <EtapaEndereco onNext={e => { setEndereco(e); setEtapa(1); }} />;
@@ -752,5 +779,5 @@ export default function Assinatura() {
   if (etapa === 4) return <EtapaContrato endereco={endereco} plano={planoInfo} dados={dados} docs={docs}
     isLoading={criarMutation.isPending} linkAssinatura={linkAssinatura}
     onSubmit={p => criarMutation.mutate(p)} onBack={() => setEtapa(3)} />;
-  if (etapa === 5) return <EtapaConfirmacao plano={planoInfo} endereco={endereco} dados={dados} onNova={reset} />;
+  if (etapa === 5) return <EtapaConfirmacao plano={planoInfo} endereco={endereco} dados={dados} resultado={resultado} onNova={reset} />;
 }

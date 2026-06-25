@@ -76,6 +76,35 @@ Deno.serve(async (req) => {
       observacao: `Fidelidade: ${dados.fidelidade} | Vencimento: dia ${dados.vencimento}`,
     });
 
+    // 2.5 PORTÃO: consulta de crédito (Valido/Serasa) — só segue se aprovado
+    if (dados.cpf) {
+      try {
+        await base44.asServiceRole.functions.invoke('autoCreditoPedido', { pedido_id: pedido.id });
+      } catch (e) {
+        console.warn('Falha na consulta de crédito:', e.message);
+      }
+      const pedidoPosCredito = await base44.asServiceRole.entities.Pedido.get(pedido.id);
+      const statusPosCredito = pedidoPosCredito?.status;
+      if (statusPosCredito === 'recusado') {
+        return Response.json({
+          success: true,
+          pedido_id: pedido.id,
+          link_assinatura: null,
+          resultado: 'reprovado',
+          message: 'Crédito não aprovado. Nossa equipe entrará em contato.',
+        });
+      }
+      if (statusPosCredito === 'analise_credito') {
+        return Response.json({
+          success: true,
+          pedido_id: pedido.id,
+          link_assinatura: null,
+          resultado: 'manual',
+          message: 'Análise de crédito em verificação manual. Aguarde nosso contato.',
+        });
+      }
+    }
+
     // 3. Se não tem ZapSign ou template, retorna só o pedido criado
     if (!zapToken || !template_id) {
       return Response.json({
