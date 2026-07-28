@@ -187,7 +187,7 @@ export default function Integracoes() {
       name: "ZapSign",
       icon: Mail,
       description: "Assinatura digital",
-      status: contractsSigned > 0 ? "ok" : "unknown",
+      status: testResults.zapsign?.ok ? "ok" : testResults.zapsign ? "error" : (contractsSigned > 0 ? "ok" : "unknown"),
       lastSync: contratos.find(c => c.data_assinatura)?.data_assinatura
         ? format(new Date(contratos.find(c => c.data_assinatura).data_assinatura), "dd/MM/yyyy HH:mm", { locale: ptBR })
         : "Nunca",
