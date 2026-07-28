@@ -228,6 +228,47 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── 7. Alerta WhatsApp para o gerente ────────────────────────────────────
+    try {
+      const gerentePhone = (cfg.gerente_whatsapp || '').replace(/\D/g, '');
+
+      if (gerentePhone) {
+        const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/+$/, '');
+        const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
+        const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
+        let instanceName = cfg.evo_instance || '';
+        if (!instanceName) {
+          const statuses = await base44.asServiceRole.entities.EvolutionStatus.list();
+          instanceName = statuses[0]?.instance_name || '';
+        }
+
+        if (EVOLUTION_URL && (EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY) && instanceName) {
+          const valor = pedido.valor != null ? `R$ ${Number(pedido.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+          const msg = `🎉 *PEDIDO ATIVADO NO IXC*\n\n👤 Cliente: *${pedido.lead_nome || ''}*\n📦 Plano: ${pedido.plano_nome || ''}\n💰 Valor: ${valor}\n👨‍💼 Vendedor: ${pedido.vendedor_nome || ''}\n🔑 ID Cliente IXC: ${idClienteIxc}\n📄 Contrato IXC: ${idContratoIxc}\n🛠️ OS de Instalação: ${idOsIxc || '—'}\n\nO cliente foi ativado com sucesso no IXC e a comissão foi gerada.`;
+
+          const waResp = await fetch(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY,
+            },
+            body: JSON.stringify({ number: gerentePhone, text: msg, linkPreview: false }),
+          });
+
+          if (waResp.ok) {
+            console.log(`Alerta WhatsApp de ativação enviado ao gerente: ${gerentePhone}`);
+          } else {
+            const err = await waResp.text().catch(() => '');
+            console.warn(`Falha ao enviar WhatsApp de ativação ao gerente: ${err}`);
+          }
+        }
+      } else {
+        console.warn('gerente_whatsapp não configurado em ConfigRegras, alerta de ativação não enviado.');
+      }
+    } catch (waErr) {
+      console.warn('Erro ao enviar alerta WhatsApp de ativação:', (waErr as Error).message);
+    }
+
     return Response.json({
       success: true,
       id_cliente_ixc: idClienteIxc,
