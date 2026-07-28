@@ -43,6 +43,7 @@ import PainelRevendedor from "@/pages/PainelRevendedor";
 import Atendimento from "@/pages/Atendimento";
 import ConfigAtendimento from "@/pages/ConfigAtendimento";
 import Viabilidade from "@/pages/Viabilidade";
+import PainelFunil from "@/pages/PainelFunil";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -100,6 +101,7 @@ const AuthenticatedApp = () => {
           <Route path="/atendimento" element={<Atendimento />} />
           <Route path="/config-atendimento" element={<ConfigAtendimento />} />
           <Route path="/viabilidade" element={<Viabilidade />} />
+          <Route path="/funil" element={<PainelFunil />} />
         </Route>
       </Route>
 
