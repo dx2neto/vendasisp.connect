@@ -128,13 +128,61 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 5. Envia alerta WhatsApp para o gerente
+    if (!jaAssinado) {
+      try {
+        const configs = await base44.asServiceRole.entities.ConfigRegras.list();
+        const cfg = configs[0] || {};
+        const gerentePhone = (cfg.gerente_whatsapp || '').replace(/\D/g, '');
+
+        if (gerentePhone) {
+          const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/+$/, '');
+          const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
+          const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
+          let instanceName = cfg.evo_instance || '';
+          if (!instanceName) {
+            const statuses = await base44.asServiceRole.entities.EvolutionStatus.list();
+            instanceName = statuses[0]?.instance_name || '';
+          }
+
+          if (EVOLUTION_URL && (EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY) && instanceName) {
+            const nomeCliente = pedido?.lead_nome || contrato?.cliente_nome || 'Cliente';
+            const planoNome = pedido?.plano_nome || '';
+            const valor = pedido?.valor != null ? `R$ ${Number(pedido.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+            const vendedorNome = pedido?.vendedor_nome || '';
+            const msg = `✅ *CONTRATO ASSINADO*\n\n👤 Cliente: *${nomeCliente}*\n📦 Plano: ${planoNome}\n💰 Valor: ${valor}\n👨‍💼 Vendedor: ${vendedorNome}\n\nO contrato foi assinado e o pedido foi atualizado para "Assinado".\nVerifique os próximos passos no CRM.`;
+
+            const waResp = await fetch(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY,
+              },
+              body: JSON.stringify({ number: gerentePhone, text: msg, linkPreview: false }),
+            });
+
+            if (waResp.ok) {
+              console.log(`Alerta WhatsApp enviado ao gerente: ${gerentePhone}`);
+            } else {
+              const err = await waResp.text().catch(() => '');
+              console.warn(`Falha ao enviar WhatsApp ao gerente: ${err}`);
+            }
+          }
+        } else {
+          console.warn('gerente_whatsapp não configurado em ConfigRegras, alerta não enviado.');
+        }
+      } catch (waErr) {
+        console.warn('Erro ao enviar alerta WhatsApp ao gerente:', (waErr as Error).message);
+      }
+    }
+
     return Response.json({
       ok: true,
       contrato_id: contrato?.id || null,
       pedido_id: pidAssinatura || null,
       notificacao_enviada: notificacaoEnviada,
     });
-  } catch (error) {
+    } catch (error) {
     console.error('Erro no webhook ZapSign:', error.message);
     // Sempre responde 200 para o ZapSign não reenviar indefinidamente
     return Response.json({ ok: false, error: error.message });

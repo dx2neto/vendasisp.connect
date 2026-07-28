@@ -97,6 +97,10 @@
     "evo_instance": {
       "type": "string",
       "description": "Nome da inst\u00e2ncia do Evolution Go"
+    },
+    "gerente_whatsapp": {
+      "type": "string",
+      "description": "WhatsApp do gerente para receber alertas (somente d\u00edgitos com DDI: 55+DDD+n\u00ba)"
     }
   },
   "required": []

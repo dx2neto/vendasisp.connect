@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Shield, Plug, Save, CheckCircle, XCircle, Loader2, RefreshCw } from "lucide-react";
+import { Settings, Shield, Plug, Save, CheckCircle, XCircle, Loader2, RefreshCw, MessageCircle } from "lucide-react";
 import SincronizarIXC from "@/components/configuracoes/SincronizarIXC";
 
 export default function Configuracoes() {
@@ -40,6 +40,7 @@ export default function Configuracoes() {
     id_setor_os_ixc: "1",
     contribuinte_pf: "2",
     status_contrato_inicial: "P",
+    gerente_whatsapp: "",
   });
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function Configuracoes() {
         id_setor_os_ixc: config.id_setor_os_ixc || "1",
         contribuinte_pf: config.contribuinte_pf || "2",
         status_contrato_inicial: config.status_contrato_inicial || "P",
+        gerente_whatsapp: config.gerente_whatsapp || "",
       });
     }
   }, [config.id]);
@@ -119,6 +121,27 @@ export default function Configuracoes() {
                   <Label>Comissão Revendedor (%)</Label>
                   <Input type="number" step="0.5" value={form.comissao_revendedor_percentual} onChange={e => set("comissao_revendedor_percentual", Number(e.target.value))} className="rounded-xl" />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><MessageCircle className="w-5 h-5 text-primary" /> Alertas WhatsApp</CardTitle>
+              <CardDescription>Notificações automáticas enviadas ao gerente</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>WhatsApp do Gerente</Label>
+                <Input
+                  value={form.gerente_whatsapp}
+                  onChange={e => set("gerente_whatsapp", e.target.value)}
+                  placeholder="5511999990000"
+                  className="rounded-xl"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Recebe alerta automático quando um contrato é assinado no ZapSign. Use o formato 55+DDD+número (ex: 5511999990000).
+                </p>
               </div>
             </CardContent>
           </Card>
