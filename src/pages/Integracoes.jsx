@@ -142,7 +142,8 @@ export default function Integracoes() {
   const testIntegration = async (service) => {
     setTesting(prev => ({ ...prev, [service]: true }));
     try {
-      const fnName = service === "evolution" ? "testarEvolution" : "testarIXC";
+      const fnMap = { evolution: "testarEvolution", ixc: "testarIXC", zapsign: "testarZapSign" };
+      const fnName = fnMap[service] || `testar${service.charAt(0).toUpperCase()}${service.slice(1)}`;
       const res = await base44.functions.invoke(fnName, {});
       setTestResults(prev => ({
         ...prev,
