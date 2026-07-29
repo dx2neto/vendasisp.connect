@@ -57,7 +57,9 @@
         "porta_a_porta",
         "call_center",
         "revenda",
-        "site"
+        "site",
+        "indicacao",
+        "indicacao_vendedor"
       ],
       "default": "site"
     },

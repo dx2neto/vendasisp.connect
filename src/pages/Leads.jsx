@@ -45,7 +45,7 @@ export default function Leads() {
   const [search, setSearch] = useState("");
   const [downloadingId, setDownloadingId] = useState(null);
   const queryClient = useQueryClient();
-  const { filtrarLeads } = usePermissions();
+  const { filtrarLeads, user, is } = usePermissions();
 
   const handleDownloadPdf = async (lead) => {
     setDownloadingId(lead.id);
@@ -116,7 +116,12 @@ export default function Leads() {
     if (editingLead) {
       updateMutation.mutate({ id: editingLead.id, data });
     } else {
-      createMutation.mutate({ ...data, data_entrada: new Date().toISOString(), etapa_funil: "novo" });
+      // Atribuição: sem vendedor_id o lead criado por um vendedor não passava
+      // no filtrarLeads e "sumia" da própria lista de quem o cadastrou.
+      const atribuicao = is.vendedor
+        ? { vendedor_id: user?.id || "", vendedor_nome: user?.full_name || "" }
+        : {};
+      createMutation.mutate({ ...data, ...atribuicao, data_entrada: new Date().toISOString(), etapa_funil: "novo" });
     }
   };
 

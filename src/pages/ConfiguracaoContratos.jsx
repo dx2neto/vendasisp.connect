@@ -14,8 +14,11 @@
 // pro ZapSign.
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Plano, TemplateContrato } from "@/api/entities";
-import { sincronizarIXC } from "@/api/functions";
+import { base44 } from "@/api/base44Client";
+
+const Plano = base44.entities.Plano;
+const TemplateContrato = base44.entities.TemplateContrato;
+const sincronizarIXC = (payload) => base44.functions.invoke("sincronizarIXC", payload);
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

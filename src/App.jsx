@@ -44,6 +44,8 @@ import Atendimento from "@/pages/Atendimento";
 import ConfigAtendimento from "@/pages/ConfigAtendimento";
 import Viabilidade from "@/pages/Viabilidade";
 import PainelFunil from "@/pages/PainelFunil";
+import Indicacao from "@/pages/Indicacao";
+import GestaoIndicacoes from "@/pages/GestaoIndicacoes";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -73,7 +75,7 @@ const AuthenticatedApp = () => {
       <Route path="/site" element={<SiteInstitucional />} />
       <Route path="/boleto" element={<BoletoFacil />} />
       <Route path="/planometro" element={<Planometro />} />
-      <Route path="/planometro" element={<Planometro />} />
+      <Route path="/indique" element={<Indicacao />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
@@ -102,6 +104,7 @@ const AuthenticatedApp = () => {
           <Route path="/config-atendimento" element={<ConfigAtendimento />} />
           <Route path="/viabilidade" element={<Viabilidade />} />
           <Route path="/funil" element={<PainelFunil />} />
+          <Route path="/indicacoes" element={<GestaoIndicacoes />} />
         </Route>
       </Route>
 

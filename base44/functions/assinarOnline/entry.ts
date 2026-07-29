@@ -37,11 +37,42 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     const {
-      endereco, plano_info, dados, template_id,
+      endereco, plano_info, dados, docs, template_id,
       vendedor_id,
     } = await req.json();
 
     const zapToken = Deno.env.get('ZAPSIGN_TOKEN');
+
+    // 0. Resolve o parceiro do link (?v=): aceita ID do usuário OU parceiro_codigo.
+    //    Antes o valor cru era gravado em vendedor_id, então vendas por link de
+    //    revendedor nunca apareciam para o revendedor (filtro usa revendedor_id).
+    let atribuicao = {};
+    if (vendedor_id) {
+      try {
+        const users = await base44.asServiceRole.entities.User.list('-created_date', 1000);
+        const parceiro = users.find(u =>
+          u.id === vendedor_id ||
+          (u.parceiro_codigo && u.parceiro_codigo.toUpperCase() === String(vendedor_id).toUpperCase())
+        );
+        if (parceiro) {
+          if (parceiro.role === 'revendedor') {
+            atribuicao = { revendedor_id: parceiro.id, revendedor_nome: parceiro.full_name || '' };
+          } else {
+            atribuicao = {
+              vendedor_id: parceiro.id,
+              vendedor_nome: parceiro.full_name || '',
+              gerente_id: parceiro.gerente_id || '',
+              gerente_nome: parceiro.gerente_nome || '',
+            };
+          }
+        } else {
+          atribuicao = { vendedor_id: String(vendedor_id) }; // mantém rastro mesmo sem match
+        }
+      } catch (_e) {
+        atribuicao = { vendedor_id: String(vendedor_id) };
+      }
+    }
+    const canalOrigem = atribuicao.revendedor_id ? 'revenda' : (vendedor_id ? 'indicacao_vendedor' : 'site');
 
     // 1. Cria lead
     const lead = await base44.asServiceRole.entities.Lead.create({
@@ -57,7 +88,7 @@ Deno.serve(async (req) => {
       bairro: dados.end_instalacao_bairro || endereco.bairro,
       cidade_nome: dados.end_instalacao_cidade || endereco.cidade,
       uf: endereco.uf || '',
-      canal_origem: vendedor_id ? 'revenda' : 'site',
+      canal_origem: canalOrigem,
       etapa_funil: 'novo',
       observacao: dados.observacoes || '',
     });
@@ -70,9 +101,20 @@ Deno.serve(async (req) => {
       plano_id: plano_info.plano.id,
       plano_nome: plano_info.plano.nome,
       valor: plano_info.total,
-      vendedor_id: vendedor_id || '',
+      ...atribuicao,
       status: 'novo',
-      canal_origem: vendedor_id ? 'revenda' : 'site',
+      canal_origem: canalOrigem,
+      customer_email: endereco.email || '',
+      customer_phone: (endereco.telefone || '').replace(/\D/g, ''),
+      rg: dados.rg || '',
+      loyalty: parseInt(dados.fidelidade, 10) || 0,
+      due_day: parseInt(dados.vencimento, 10) || undefined,
+      documents: docs ? {
+        doc_frente: docs.rg_frente?.url || '',
+        doc_verso: docs.rg_verso?.url || '',
+        comp_residencia: docs.comprovante_residencia?.url || '',
+        selfie: docs.selfie?.url || '',
+      } : undefined,
       observacao: `Fidelidade: ${dados.fidelidade} | Vencimento: dia ${dados.vencimento}`,
     });
 
@@ -160,15 +202,23 @@ Deno.serve(async (req) => {
     const htmlContrato = gerarHtmlContrato(conteudoPreenchido);
 
     // 5. Converte HTML para base64 e envia ao ZapSign
+    // Conversão em blocos: btoa(String.fromCharCode(...bytes)) estoura a call
+    // stack em contratos grandes (RangeError). 8KB por bloco é seguro.
     const encoder = new TextEncoder();
     const htmlBytes = encoder.encode(htmlContrato);
-    const base64Html = btoa(String.fromCharCode(...htmlBytes));
+    let binario = '';
+    const CHUNK = 8192;
+    for (let i = 0; i < htmlBytes.length; i += CHUNK) {
+      binario += String.fromCharCode.apply(null, htmlBytes.subarray(i, i + CHUNK));
+    }
+    const base64Html = btoa(binario);
 
     const phone = (endereco.telefone || '').replace(/\D/g, '');
 
     const zapBody = {
       name: `Contrato - ${endereco.nome} - ${plano_info.plano.nome}`,
       base64_pdf: base64Html, // ZapSign aceita HTML como base64
+      external_id: pedido.id, // permite ao webhookZapSign achar a venda via fallback
       signers: [{
         name: endereco.nome,
         email: endereco.email,
@@ -210,6 +260,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Pedido.update(pedido.id, {
         status: 'contrato_pendente',
         link_assinatura: linkAssinatura,
+        zapsign_doc_token: idZapsign,
         data_contrato: now.toISOString(),
       });
     }

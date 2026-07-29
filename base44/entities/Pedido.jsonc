@@ -26,6 +26,13 @@
     "vendedor_nome": {
       "type": "string"
     },
+    "gerente_id": {
+      "type": "string",
+      "description": "ID do gerente do vendedor no momento da venda (usado no filtro de permiss\u00f5es)"
+    },
+    "gerente_nome": {
+      "type": "string"
+    },
     "revendedor_id": {
       "type": "string"
     },

@@ -49,12 +49,10 @@ export function usePermissions() {
     if (!user) return [];
     if (is.admin) return pedidos;
     if (is.gerente) {
-      // Gerente vê pedidos dos vendedores do seu time
-      return pedidos.filter(p =>
-        p.vendedor_id === user.id ||
-        p.gerente_id === user.id ||
-        p.gerente_nome === user.full_name
-      );
+      // Visão total, como na Esteira. O filtro estrito por time
+      // (gerente_id === user.id) escondia todos os pedidos legados, que foram
+      // criados antes de gerente_id/gerente_nome existirem no schema.
+      return pedidos;
     }
     if (is.vendedor) {
       return pedidos.filter(p => p.vendedor_id === user.id || p.vendedor_nome === user.full_name);
@@ -69,10 +67,9 @@ export function usePermissions() {
     if (!user) return [];
     if (is.admin) return leads;
     if (is.gerente) {
-      return leads.filter(l =>
-        l.vendedor_id === user.id ||
-        l.vendedor_nome === user.full_name
-      );
+      // Visão total: o filtro anterior mostrava ao gerente apenas leads onde
+      // ele próprio era o vendedor, escondendo os leads do time.
+      return leads;
     }
     if (is.vendedor) {
       return leads.filter(l => l.vendedor_id === user.id || l.vendedor_nome === user.full_name);

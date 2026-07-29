@@ -72,6 +72,12 @@ export default function Pedidos() {
       lead_id: lead.id, lead_nome: lead.nome, lead_cpf: lead.cnpj_cpf,
       plano_id: plano?.id || "", plano_nome: plano?.nome || "",
       valor: plano?.preco_mensal || 0, canal_origem: lead.canal_origem, status: "novo",
+      // Atribuição da venda: sem estes campos o pedido "sumia" da lista do
+      // vendedor (filtrarPedidos) e nunca aparecia para o gerente do time.
+      vendedor_id: user?.id || "",
+      vendedor_nome: user?.full_name || "",
+      gerente_id: user?.gerente_id || "",
+      gerente_nome: user?.gerente_nome || "",
     });
   };
 

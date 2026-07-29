@@ -48,9 +48,10 @@ export default function Indicacao() {
       // Criar lead para o indicado
       const lead = await base44.entities.Lead.create({
         nome: form.indicado_nome,
+        cnpj_cpf: "",
         telefone: form.indicado_telefone,
         email: form.indicado_email,
-        canal_origem: "site",
+        canal_origem: "indicacao",
         etapa_funil: "novo",
         data_entrada: new Date().toISOString(),
         observacao: `Indicado por ${form.indicador_nome} (${form.indicador_telefone}) — Código: ${codigo}`,

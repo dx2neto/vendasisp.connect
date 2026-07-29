@@ -15,6 +15,7 @@ const menuItems = [
   { label: "Meu Painel",    icon: UserCog,          path: "/vendedor",      roles: ["vendedor"] },
   { label: "Painel Revenda", icon: Briefcase,        path: "/painel-revendedor", roles: ["revendedor"] },
   { label: "Funil de Vendas", icon: TrendingUp,       path: "/funil",         roles: ["admin","gerente","vendedor"] },
+  { label: "Indicações",    icon: Gift,              path: "/indicacoes",    roles: ["admin","gerente"] },
   { label: "Esteira",       icon: Kanban,            path: "/esteira",       roles: ["admin","gerente","vendedor"] },
   { label: "Leads",         icon: Users,             path: "/leads",         roles: ["admin","gerente","vendedor"] },
   { label: "Pedidos",       icon: ShoppingCart,      path: "/pedidos",       roles: ["admin","gerente","vendedor","revendedor"] },

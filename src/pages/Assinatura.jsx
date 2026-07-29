@@ -748,6 +748,7 @@ export default function Assinatura() {
         endereco,
         plano_info: planoInfo,
         dados,
+        docs: docs || null,
         template_id: templateId || null,
         vendedor_id: vendedorId || null,
       });

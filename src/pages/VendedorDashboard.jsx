@@ -49,7 +49,7 @@ function KpiCard({ icon: Icon, label, value, sub, accent, destaque }) {
   );
 }
 
-function LancamentoVendaModal({ open, onClose, vendedorNome, onSuccess }) {
+function LancamentoVendaModal({ open, onClose, vendedor, onSuccess }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     lead_nome: "", lead_cpf: "", plano_nome: "", valor: "", observacao: ""
@@ -67,7 +67,10 @@ function LancamentoVendaModal({ open, onClose, vendedorNome, onSuccess }) {
       lead_cpf: form.lead_cpf,
       plano_nome: form.plano_nome,
       valor: parseFloat(form.valor) || 0,
-      vendedor_nome: vendedorNome,
+      vendedor_id: vendedor?.id || "",
+      vendedor_nome: vendedor?.full_name || "",
+      gerente_id: vendedor?.gerente_id || "",
+      gerente_nome: vendedor?.gerente_nome || "",
       canal_origem: "call_center",
       status: "novo",
       observacao: form.observacao,
@@ -384,7 +387,7 @@ export default function VendedorDashboard() {
       <LancamentoVendaModal
         open={modalAberto}
         onClose={() => setModalAberto(false)}
-        vendedorNome={me.full_name}
+        vendedor={me}
       />
     </div>
   );

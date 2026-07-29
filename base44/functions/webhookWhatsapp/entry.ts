@@ -6,8 +6,10 @@ Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const db = base44.asServiceRole;
 
-  // Processa em background
-  (async () => {
+  // Processa ANTES de responder: em runtime serverless (Deno Deploy), o
+  // trabalho iniciado após o return pode ser congelado/descartado — mensagens
+  // chegavam a se perder de forma intermitente com o padrão fire-and-forget.
+  await (async () => {
     try {
       const event = body.event || body.Event || body.type || '';
       const data = body.data || body.Data || body.payload || {};
