@@ -69,15 +69,38 @@ export default function Pedidos() {
     const plano = planos.find(p => p.id === form.plano_id);
     if (!lead) return;
     createMutation.mutate({
-      lead_id: lead.id, lead_nome: lead.nome, lead_cpf: lead.cnpj_cpf,
-      plano_id: plano?.id || "", plano_nome: plano?.nome || "",
-      valor: plano?.preco_mensal || 0, canal_origem: lead.canal_origem, status: "novo",
-      // Atribuição da venda: sem estes campos o pedido "sumia" da lista do
-      // vendedor (filtrarPedidos) e nunca aparecia para o gerente do time.
+      lead_id: lead.id,
+      lead_nome: lead.nome,
+      lead_cpf: lead.cnpj_cpf,
+      plano_id: plano?.id || "",
+      plano_nome: plano?.nome || "",
+      valor: plano?.preco_mensal || 0,
+      canal_origem: lead.canal_origem,
+      status: "novo",
+      // Atribuição da venda
       vendedor_id: user?.id || "",
       vendedor_nome: user?.full_name || "",
       gerente_id: user?.gerente_id || "",
       gerente_nome: user?.gerente_nome || "",
+      // Dados do cliente (copiados do lead para que ativarIXC tenha tudo)
+      customer_email: lead.email || "",
+      customer_phone: lead.telefone ? lead.telefone.replace(/\D/g, "") : "",
+      rg: lead.rg || "",
+      // Endereço de instalação (do lead)
+      install_address: {
+        cep: lead.cep || "",
+        endereco: lead.rua || "",
+        numero: lead.numero || "",
+        complemento: lead.complemento || "",
+        bairro: lead.bairro || "",
+        cidade: lead.cidade_nome || "",
+        estado: lead.uf || "",
+      },
+      // Dados de pagamento (padrões da config, aplicados ao ativar)
+      due_day: 10,
+      loyalty: 0,
+      access_type: "residencial",
+      is_client: "nao",
     });
   };
 
