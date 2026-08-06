@@ -46,6 +46,7 @@ import Viabilidade from "@/pages/Viabilidade";
 import PainelFunil from "@/pages/PainelFunil";
 import Indicacao from "@/pages/Indicacao";
 import GestaoIndicacoes from "@/pages/GestaoIndicacoes";
+import StatusIntegracoes from "@/pages/StatusIntegracoes";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -105,6 +106,7 @@ const AuthenticatedApp = () => {
           <Route path="/viabilidade" element={<Viabilidade />} />
           <Route path="/funil" element={<PainelFunil />} />
           <Route path="/indicacoes" element={<GestaoIndicacoes />} />
+          <Route path="/status-integracoes" element={<StatusIntegracoes />} />
         </Route>
       </Route>
 

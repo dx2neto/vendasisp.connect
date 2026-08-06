@@ -34,6 +34,7 @@ const menuItems = [
   { label: "Planômetro",    icon: Gauge,             path: "/planometro",    external: true, roles: ["admin","gerente","vendedor"] },
   { label: "Atendimento",   icon: MessageSquare,     path: "/atendimento",   roles: ["admin","gerente","vendedor"] },
   { label: "Config. Atend.",icon: Settings,          path: "/config-atendimento", roles: ["admin"] },
+  { label: "Status Integ.", icon: Plug,              path: "/status-integracoes", roles: ["admin","gerente"] },
   { label: "Integrações",   icon: Plug,              path: "/integracoes",   roles: ["admin"] },
   { label: "Configurações", icon: Settings,          path: "/configuracoes", roles: ["admin"] },
 ];
