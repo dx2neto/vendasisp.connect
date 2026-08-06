@@ -40,6 +40,29 @@ Deno.serve(async (req) => {
     const addr = pedido.install_address || {};
     const getAddr = (field, leadField) => addr[field] || (lead ? lead[leadField] : '') || '';
 
+    // ── IDEMPOTÊNCIA: se o pedido já tem contrato IXC, não recria ──────────────
+    if (pedido.id_contrato_ixc) {
+      return Response.json({
+        success: true,
+        idempotencia: true,
+        message: 'Pedido já possui contrato IXC vinculado',
+        id_cliente_ixc: pedido.id_cliente_ixc,
+        id_contrato_ixc: pedido.id_contrato_ixc,
+        id_os_ixc: pedido.id_os_ixc,
+      });
+    }
+
+    // ── Vendedor IXC: usa vínculo do usuário quando disponível ────────────────
+    let idVendedorIxc = cfg.id_vendedor_ixc_padrao || '1';
+    if (pedido.vendedor_id) {
+      try {
+        const vendedorUser = await base44.asServiceRole.entities.User.get(pedido.vendedor_id);
+        if (vendedorUser?.id_vendedor_ixc) {
+          idVendedorIxc = vendedorUser.id_vendedor_ixc;
+        }
+      } catch (_) { /* mantém default da config */ }
+    }
+
     // ── 1. Cliente — verificar se já existe por CPF/CNPJ ──────────────────────
     const cpf = (pedido.lead_cpf || lead?.cnpj_cpf || '').replace(/\D/g, '');
     const tipoPessoa = lead?.tipo_pessoa || (cpf.length === 14 ? 'J' : 'F');
@@ -95,7 +118,7 @@ Deno.serve(async (req) => {
       id_cliente: idClienteIxc,
       id_modelo: plano?.id_modelo_ixc || '',
       id_tipo_contrato: cfg.id_tipo_contrato_ixc || '',
-      id_vendedor: cfg.id_vendedor_ixc_padrao || '1',
+      id_vendedor: idVendedorIxc,
       id_filial: cfg.id_filial_ixc || '1',
       id_carteira_cobranca: cfg.id_carteira_cobranca_ixc || '',
       contrato: `CTR-${pedido_id.substring(0, 8).toUpperCase()}`,
@@ -132,6 +155,7 @@ Deno.serve(async (req) => {
       tipo_chamado: 'I',
       obs: `Instalação - venda ${pedido_id}. Endereço: ${getAddr('endereco', 'rua')}, ${getAddr('numero', 'numero')}, ${getAddr('bairro', 'bairro')}`,
       id_filial: cfg.id_filial_ixc || '1',
+      id_vendedor: idVendedorIxc,
     };
 
     const osResp = await ixcRequest('POST', 'su_oss_chamado', osPayload, 'incluir');

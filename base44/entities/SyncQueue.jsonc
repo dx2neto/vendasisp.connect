@@ -1,0 +1,73 @@
+{
+  "name": "SyncQueue",
+  "type": "object",
+  "properties": {
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "plano",
+        "vendedor",
+        "cliente",
+        "contrato",
+        "os",
+        "status"
+      ],
+      "description": "Tipo de sincroniza\u00e7\u00e3o"
+    },
+    "registro_id": {
+      "type": "string",
+      "description": "ID interno do registro (Pedido, Lead, etc.)"
+    },
+    "id_ixc": {
+      "type": "string",
+      "description": "ID no IXCSoft (quando aplic\u00e1vel)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aguardando",
+        "processando",
+        "concluido",
+        "erro",
+        "aguardando_correcao",
+        "cancelado"
+      ],
+      "default": "aguardando"
+    },
+    "tentativas": {
+      "type": "number",
+      "default": 0
+    },
+    "max_tentativas": {
+      "type": "number",
+      "default": 3
+    },
+    "proxima_tentativa": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ultimo_erro": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Dados enviados na requisi\u00e7\u00e3o"
+    },
+    "resposta": {
+      "type": "object",
+      "description": "Resposta da API IXC"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "ID de correla\u00e7\u00e3o para rastreamento"
+    },
+    "data_conclusao": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "tipo",
+    "registro_id"
+  ]
+}

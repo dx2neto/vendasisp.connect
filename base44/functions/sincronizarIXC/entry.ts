@@ -43,6 +43,48 @@ Deno.serve(async (req) => {
       resultados.endpoints.vendedores = r.endpoint;
     }
 
+    // ── Sincronizar vendedores IXC → vínculo com usuários CRM ─────────────
+    if (tipo === 'sync_vendedores') {
+      const r = await ixcListar(['vendedor', 'vendedores', 'funcionarios']);
+      const vendedoresIXC = r.registros || [];
+
+      // Busca usuários do CRM que são vendedores/gerentes
+      const usuariosCRM = await base44.asServiceRole.entities.User.list();
+      const vendedoresCRM = usuariosCRM.filter(u => u.role === 'vendedor' || u.role === 'gerente');
+
+      let vinculados = 0;
+      let semCorrespondencia = 0;
+      const pendencias = [];
+
+      for (const vix of vendedoresIXC) {
+        if (!vix.id || vix.status !== 'A') continue;
+
+        // Tenta匹配 por nome (case insensitive, removendo acentos)
+        const nomeIXC = (vix.nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const match = vendedoresCRM.find(u => {
+          const nomeCRM = (u.full_name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return nomeCRM === nomeIXC || nomeCRM.includes(nomeIXC) || nomeIXC.includes(nomeCRM);
+        });
+
+        if (match && !match.id_vendedor_ixc) {
+          await base44.asServiceRole.entities.User.update(match.id, {
+            id_vendedor_ixc: String(vix.id),
+            nome_vendedor_ixc: vix.nome || '',
+          });
+          vinculados++;
+        } else if (!match) {
+          semCorrespondencia++;
+          pendencias.push({ id_ixc: vix.id, nome: vix.nome, motivo: 'sem usuário CRM correspondente' });
+        }
+      }
+
+      resultados.vendedores = vendedoresIXC;
+      resultados.vinculados = vinculados;
+      resultados.sem_correspondencia = semCorrespondencia;
+      resultados.pendencias = pendencias;
+      resultados.endpoints.vendedores = r.endpoint;
+    }
+
     // ── Planos (radaccess/radgrupo) ──────────────────────────────────────
     if (!tipo || tipo === 'planos') {
       const r = await ixcListar(['radaccess', 'radgrupo']);

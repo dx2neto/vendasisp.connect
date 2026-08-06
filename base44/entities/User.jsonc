@@ -26,6 +26,14 @@
       "type": "string",
       "description": "Nome do gerente respons\u00e1vel"
     },
+    "id_vendedor_ixc": {
+      "type": "string",
+      "description": "ID do vendedor no IXCSoft (v\u00ednculo para envio correto em cadastros)"
+    },
+    "nome_vendedor_ixc": {
+      "type": "string",
+      "description": "Nome do vendedor no IXCSoft (para confer\u00eancia)"
+    },
     "parceiro_codigo": {
       "type": "string",
       "description": "C\u00f3digo de parceiro \u00fanico (usado no link /assinar?v=...)"

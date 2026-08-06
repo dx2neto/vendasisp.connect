@@ -47,6 +47,8 @@ import PainelFunil from "@/pages/PainelFunil";
 import Indicacao from "@/pages/Indicacao";
 import GestaoIndicacoes from "@/pages/GestaoIndicacoes";
 import StatusIntegracoes from "@/pages/StatusIntegracoes";
+import PainelIXCSoft from "@/pages/PainelIXCSoft";
+import VendedoresIXC from "@/pages/VendedoresIXC";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -107,6 +109,8 @@ const AuthenticatedApp = () => {
           <Route path="/funil" element={<PainelFunil />} />
           <Route path="/indicacoes" element={<GestaoIndicacoes />} />
           <Route path="/status-integracoes" element={<StatusIntegracoes />} />
+          <Route path="/painel-ixc" element={<PainelIXCSoft />} />
+          <Route path="/vendedores-ixc" element={<VendedoresIXC />} />
         </Route>
       </Route>
 
