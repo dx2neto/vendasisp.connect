@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getIxcConfig, ixcConfigOk } from "../../shared/ixcClient.ts";
 
-async function ixcPost(url, auth, body) {
+async function ixcPost(url: string, auth: string, body: Record<string, any>) {
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -22,26 +23,22 @@ Deno.serve(async (req) => {
 
     const { telefone, documento, id } = await req.json();
 
-    const IXC_HOST = Deno.env.get('IXC_HOST');
-    const token = Deno.env.get('IXC_TOKEN') || '';
-    const legacyAuth = (Deno.env.get('IXC_AUTH_BASIC') || '').replace(/^Basic\s+/i, '');
-    const IXC_AUTH = legacyAuth || (token ? btoa(token) : '');
+    const { apiUrl, auth } = getIxcConfig();
 
-    if (!IXC_HOST || !IXC_AUTH) {
+    if (!ixcConfigOk()) {
       return Response.json({ encontrado: false, erro: 'IXC não configurado' });
     }
 
-    const base = IXC_HOST.replace(/\/+$/, '').replace(/\/webservice\/v1$/i, '');
-    const clienteUrl = `${base}/webservice/v1/cliente`;
+    const clienteUrl = `${apiUrl}/cliente`;
 
     let cliente = null;
 
     if (id) {
-      const r = await ixcPost(clienteUrl, IXC_AUTH, { qtype: 'cliente.id', query: String(id), sortname: 'cliente.id' });
+      const r = await ixcPost(clienteUrl, auth, { qtype: 'cliente.id', query: String(id), sortname: 'cliente.id' });
       cliente = r.registros?.[0] || null;
     } else if (documento) {
       const cpf = documento.replace(/\D/g, '');
-      const r = await ixcPost(clienteUrl, IXC_AUTH, { qtype: 'cliente.cnpj_cpf', query: cpf, sortname: 'cliente.id' });
+      const r = await ixcPost(clienteUrl, auth, { qtype: 'cliente.cnpj_cpf', query: cpf, sortname: 'cliente.id' });
       cliente = r.registros?.[0] || null;
     } else if (telefone) {
       const tel = telefone.replace(/\D/g, '');
@@ -49,7 +46,7 @@ Deno.serve(async (req) => {
       const campos = ['cliente.telefone_celular', 'cliente.fone', 'cliente.telefone_comercial'];
       outer: for (const campo of campos) {
         for (const v of variantes) {
-          const r = await ixcPost(clienteUrl, IXC_AUTH, { qtype: campo, query: v, sortname: 'cliente.id' });
+          const r = await ixcPost(clienteUrl, auth, { qtype: campo, query: v, sortname: 'cliente.id' });
           if (r.registros?.length > 0) { cliente = r.registros[0]; break outer; }
         }
       }
@@ -58,7 +55,7 @@ Deno.serve(async (req) => {
     if (!cliente) return Response.json({ encontrado: false });
 
     // Contratos
-    const contratosR = await ixcPost(`${base}/webservice/v1/cliente_contrato`, IXC_AUTH, {
+    const contratosR = await ixcPost(`${apiUrl}/cliente_contrato`, auth, {
       qtype: 'cliente_contrato.id_cliente', query: String(cliente.id), sortname: 'cliente_contrato.id',
     });
     const contratos = (contratosR.registros || []).map(c => ({
@@ -69,7 +66,7 @@ Deno.serve(async (req) => {
     }));
 
     // Faturas em aberto
-    const faturasR = await ixcPost(`${base}/webservice/v1/fn_areceber`, IXC_AUTH, {
+    const faturasR = await ixcPost(`${apiUrl}/fn_areceber`, auth, {
       qtype: 'fn_areceber.id_cliente', query: String(cliente.id), sortname: 'fn_areceber.data_vencimento',
     });
     const faturas = (faturasR.registros || [])

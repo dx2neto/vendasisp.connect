@@ -1,34 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-
-const IXC_HOST = () => (Deno.env.get('IXC_HOST') || '')
-  .replace(/\/+$/, '')
-  .replace(/\/webservice\/v1$/i, '');
-const IXC_AUTH = () => {
-  const legacy = (Deno.env.get('IXC_AUTH_BASIC') || '').replace(/^Basic\s+/i, '');
-  const token = Deno.env.get('IXC_TOKEN') || '';
-  return legacy || (token ? btoa(token) : '');
-};
-
-async function ixcRequest(endpoint, body = null) {
-  const url = `${IXC_HOST()}/webservice/v1/${endpoint}`;
-  const opts = {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${IXC_AUTH()}`,
-      'Content-Type': 'application/json',
-      ixcsoft: 'listar',
-    },
-    body: JSON.stringify(body || { qtype: 'id', query: '', oper: '>', page: '1', rp: '1000', sortname: 'id', sortorder: 'asc' }),
-  };
-  const resp = await fetch(url, opts);
-  const text = await resp.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = { message: text || `HTTP ${resp.status}` }; }
-  if (!resp.ok) {
-    throw new Error(`IXC/${endpoint} respondeu HTTP ${resp.status}: ${data?.message || data?.error || 'falha na consulta'}`);
-  }
-  return { ok: resp.ok, data };
-}
+import { getIxcConfig, ixcConfigOk, ixcRequest } from "../../shared/ixcClient.ts";
 
 // Tenta uma lista de nomes de tabela e usa o primeiro que retornar registros.
 // Se nenhum tiver dados, devolve o resultado da primeira tentativa.
@@ -36,7 +7,7 @@ async function ixcListar(candidatos, body = null) {
   let primeiro = null;
   for (const ep of candidatos) {
     try {
-      const r = await ixcRequest(ep, body);
+      const r = await ixcRequest('POST', ep, body, 'listar');
       const regs = r.ok
         ? (Array.isArray(r.data?.registros) ? r.data.registros : Array.isArray(r.data) ? r.data : [])
         : [];
@@ -52,7 +23,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!IXC_HOST() || !IXC_AUTH()) return Response.json({ error: 'Integração IXC indisponível: configure os secrets IXC_HOST e IXC_AUTH_BASIC.', missing_secret: 'IXC_HOST/IXC_AUTH_BASIC' }, { status: 400 });
+    if (!ixcConfigOk()) return Response.json({ error: 'Integração IXC indisponível: configure os secrets IXC_API_URL e IXC_ADMIN_TOKEN.', missing_secret: 'IXC_API_URL/IXC_ADMIN_TOKEN' }, { status: 400 });
 
     const { tipo } = await req.json();
     const resultados = {};
@@ -119,10 +90,10 @@ Deno.serve(async (req) => {
 
     // ── Sincronizar clientes IXC → Leads CRM ─────────────────────────────
     if (tipo === 'sync_leads') {
-      const rClientes = await ixcRequest('cliente', {
+      const rClientes = await ixcRequest('POST', 'cliente', {
         qtype: 'ativo', query: 'S', oper: '=', page: '1', rp: '200',
         sortname: 'id', sortorder: 'desc',
-      });
+      }, 'listar');
       const raw = rClientes.data;
       const clientes = Array.isArray(raw) ? raw
         : Array.isArray(raw?.registros) ? raw.registros
@@ -170,10 +141,10 @@ Deno.serve(async (req) => {
     // ── Sincronizar modelos de contrato do IXC → TemplateContrato ─────────
     if (tipo === 'sync_modelos') {
       // Busca modelos de contrato no IXC via endpoint correto
-      const rModelos = await ixcRequest('cliente_contrato_modelo', {
+      const rModelos = await ixcRequest('POST', 'cliente_contrato_modelo', {
         qtype: 'id', query: '', oper: '>', page: '1', rp: '500',
         sortname: 'id', sortorder: 'asc',
-      });
+      }, 'listar');
 
       const rawModelos = rModelos.data;
       const modelosIXC = Array.isArray(rawModelos)

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getIxcConfig } from "../../shared/ixcClient.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -6,20 +7,13 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const host = (Deno.env.get('IXC_HOST') || '')
-      .replace(/\/+$/, '')
-      .replace(/\/webservice\/v1$/i, '');
-    const token = Deno.env.get('IXC_TOKEN') || '';
-    const legacyAuth = (Deno.env.get('IXC_AUTH_BASIC') || '').replace(/^Basic\s+/i, '');
-    const auth = legacyAuth || (token ? btoa(token) : '');
-
-    if (!host || !auth) {
-      return Response.json({ ok: false, error: 'Configure IXC_HOST e IXC_AUTH_BASIC (Base64) ou IXC_TOKEN (id:hash)' });
+    const { apiUrl, auth } = getIxcConfig();
+    if (!apiUrl || !auth) {
+      return Response.json({ ok: false, error: 'Configure IXC_API_URL e IXC_ADMIN_TOKEN nos secrets.' });
     }
 
-    // get_tok is not available in every IXC release; a one-row list validates
-    // host and credentials against the API used by the real synchronization.
-    const url = `${host}/webservice/v1/cliente`;
+    // Valida host e credenciais com uma consulta de 1 registro
+    const url = `${apiUrl}/cliente`;
     const resp = await fetch(url, {
       method: 'POST',
       headers: {

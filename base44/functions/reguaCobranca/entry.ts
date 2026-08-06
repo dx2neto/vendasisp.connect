@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getIxcConfig, ixcConfigOk } from "../../shared/ixcClient.ts";
 
 async function ixcPost(url, auth, body) {
   const res = await fetch(url, {
@@ -56,13 +57,12 @@ Deno.serve(async (req) => {
 
     const db = base44.asServiceRole;
 
-    const IXC_HOST = Deno.env.get('IXC_HOST')?.replace(/\/$/, '');
-    const IXC_AUTH = Deno.env.get('IXC_AUTH_BASIC');
+    const { apiUrl: IXC_HOST, auth: IXC_AUTH } = getIxcConfig();
     const EVOLUTION_URL = Deno.env.get('EVOLUTION_URL');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
     const EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID');
 
-    if (!IXC_HOST || !IXC_AUTH) {
+    if (!ixcConfigOk()) {
       return Response.json({ error: 'IXC não configurado' }, { status: 500 });
     }
     if (!EVOLUTION_URL || !EVOLUTION_API_KEY) {
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     hoje.setHours(0, 0, 0, 0);
 
     // 1. Buscar todas as faturas em aberto (status = 'A') no IXC
-    const faturasR = await ixcPost(`${IXC_HOST}/webservice/v1/fn_areceber`, IXC_AUTH, {
+    const faturasR = await ixcPost(`${IXC_HOST}/fn_areceber`, IXC_AUTH, {
       qtype: 'fn_areceber.status', query: 'A', sortname: 'fn_areceber.data_vencimento', sortorder: 'asc',
     });
 
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     const clienteCache = {};
     async function getCliente(id) {
       if (clienteCache[id]) return clienteCache[id];
-      const r = await ixcPost(`${IXC_HOST}/webservice/v1/cliente`, IXC_AUTH, {
+      const r = await ixcPost(`${IXC_HOST}/cliente`, IXC_AUTH, {
         qtype: 'cliente.id', query: String(id), sortname: 'cliente.id', rp: '1',
       });
       clienteCache[id] = r.registros?.[0] || null;

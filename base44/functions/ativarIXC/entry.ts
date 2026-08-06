@@ -1,32 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getIxcConfig, ixcConfigOk, ixcRequest } from "../../shared/ixcClient.ts";
 
-const IXC_HOST = () => (Deno.env.get('IXC_HOST') || '')
-  .replace(/\/+$/, '')
-  .replace(/\/webservice\/v1$/i, '');
-const IXC_AUTH = () => {
-  const legacy = (Deno.env.get('IXC_AUTH_BASIC') || '').replace(/^Basic\s+/i, '');
-  const token = Deno.env.get('IXC_TOKEN') || '';
-  return legacy || (token ? btoa(token) : '');
-};
-
-// operation: 'listar' (consultar) | 'incluir' (criar) | 'alterar' (editar)
-async function ixcRequest(method, endpoint, body = null, operation = 'listar') {
-  const url = `${IXC_HOST()}/webservice/v1/${endpoint}`;
-  const opts = {
-    method,
-    headers: {
-      Authorization: `Basic ${IXC_AUTH()}`,
-      'Content-Type': 'application/json',
-      ixcsoft: operation,
-    },
-  };
-  if (body) opts.body = JSON.stringify(body);
-  const resp = await fetch(url, opts);
-  const text = await resp.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = { message: text || `HTTP ${resp.status}` }; }
-  return { ok: resp.ok, status: resp.status, data };
-}
+const IXC_HOST = () => getIxcConfig().apiUrl;
+const IXC_AUTH = () => getIxcConfig().auth;
 
 Deno.serve(async (req) => {
   try {
@@ -37,8 +13,8 @@ Deno.serve(async (req) => {
     const { pedido_id } = await req.json();
     if (!pedido_id) return Response.json({ error: 'pedido_id obrigatório' }, { status: 400 });
 
-    if (!IXC_HOST() || !IXC_AUTH()) {
-      return Response.json({ error: 'IXC_HOST e IXC_TOKEN não configurados' }, { status: 500 });
+    if (!ixcConfigOk()) {
+      return Response.json({ error: 'IXC_API_URL e IXC_ADMIN_TOKEN não configurados' }, { status: 500 });
     }
 
     const pedido = await base44.asServiceRole.entities.Pedido.get(pedido_id);

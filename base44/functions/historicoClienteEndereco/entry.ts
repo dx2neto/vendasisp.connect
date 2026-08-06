@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getIxcConfig } from "../../shared/ixcClient.ts";
 
 // Consulta o histórico do cliente e do ENDEREÇO em cada IXC (cidade):
 //   - o CPF já foi cliente? (em quais cidades / status)
@@ -30,13 +31,12 @@ function getInstancias() {
       }
     } catch (_) { /* cai no fallback */ }
   }
-  const host = (Deno.env.get('IXC_HOST') || '').replace(/\/$/, '');
-  const auth = Deno.env.get('IXC_AUTH_BASIC') || '';
-  return host && auth ? [{ id: 0, cidade: 'IXC (padrão)', host, auth }] : [];
+  const { apiUrl, auth } = getIxcConfig();
+  return apiUrl && auth ? [{ id: 0, cidade: 'IXC (padrão)', host: apiUrl, auth }] : [];
 }
 
 async function ixcListar(inst, endpoint, body) {
-  const r = await fetch(`${inst.host}/webservice/v1/${endpoint}`, {
+  const r = await fetch(`${inst.host}/${endpoint}`, {
     method: 'POST',
     headers: { Authorization: `Basic ${inst.auth}`, 'Content-Type': 'application/json', ixcsoft: 'listar' },
     body: JSON.stringify(body),
