@@ -1,15 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { enviarWhatsApp } from "../../shared/evolutionClient.ts";
 
-// Webhook chamado pelo ZapSign quando um documento muda de status.
-// Registre em: ZapSign > Configurações > Webhooks > URL desta função.
-// Sempre responde HTTP 200 para o ZapSign não reenviar indefinidamente.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
     // ── Verificação de origem: secret compartilhado ──────────────────────
-    // ZapSign não envia assinatura HMAC; usamos um secret no header ou query.
-    // Registre o webhook no ZapSign com a URL: https://.../webhookZapSign?secret=<ZAPSIGN_TOKEN>
     const zapToken = Deno.env.get('ZAPSIGN_TOKEN') || '';
     const providedSecret = req.headers.get('x-webhook-secret') || new URL(req.url).searchParams.get('secret') || '';
     if (zapToken && providedSecret !== zapToken) {
@@ -21,24 +17,15 @@ Deno.serve(async (req) => {
     console.log('ZapSign webhook recebido:', JSON.stringify(body).slice(0, 300));
 
     const docToken = body?.document?.token || body?.token || '';
+    if (!docToken) return Response.json({ ok: false, msg: 'token do documento ausente' });
 
-    if (!docToken) {
-      return Response.json({ ok: false, msg: 'token do documento ausente' });
-    }
-
-    // Identifica o evento (doc_signed, doc_refused, doc_created, doc_deleted, email_bounce)
     const eventAction = body?.event_action || body?.action || body?.event || body?.type || '';
     const isAssinado = !eventAction || eventAction === 'sign_doc' || eventAction === 'doc_signed';
     const isRecusado = eventAction === 'doc_refused';
 
-    if (!isAssinado && !isRecusado) {
-      return Response.json({ ok: true, msg: `Evento ignorado: ${eventAction}` });
-    }
+    if (!isAssinado && !isRecusado) return Response.json({ ok: true, msg: `Evento ignorado: ${eventAction}` });
 
-    // Busca o contrato pelo token ZapSign
     let contratos = await base44.asServiceRole.entities.Contrato.filter({ id_zapsign: docToken });
-
-    // Fallback: identifica a venda por external_id (pedido_id)
     let pedidoIdByExternal = '';
     if ((!contratos || contratos.length === 0) && (body?.external_id || body?.document?.external_id)) {
       pedidoIdByExternal = String(body.external_id || body.document.external_id);
@@ -53,36 +40,26 @@ Deno.serve(async (req) => {
     const agora = new Date().toISOString();
     const urlPdf = body?.document?.signed_file || body?.signed_file || contrato?.url_pdf || '';
 
-    // Log do webhook
     await base44.asServiceRole.entities.IntegrationLog.create({
       pedido_id: contrato?.pedido_id || pedidoIdByExternal || '',
       service: 'zapsign', step: `webhook_${eventAction || 'signed'}`,
       request: body, response: { found: !!contrato, external_id: pedidoIdByExternal }, ok: true,
-    }).catch(e => console.warn('Erro ao salvar IntegrationLog:', e.message));
+    }).catch((e: Error) => console.warn('Erro ao salvar IntegrationLog:', e.message));
 
-    // ── Documento RECUSADO ──────────────────────────────────────────────────
     if (isRecusado) {
-      if (contrato) {
-        await base44.asServiceRole.entities.Contrato.update(contrato.id, { status: 'recusado', data_assinatura: agora });
-      }
+      if (contrato) await base44.asServiceRole.entities.Contrato.update(contrato.id, { status: 'recusado', data_assinatura: agora });
       const pidRecusa = contrato?.pedido_id || pedidoIdByExternal;
-      if (pidRecusa) {
-        await base44.asServiceRole.entities.Pedido.update(pidRecusa, { status: 'recusado' }).catch(() => null);
-      }
+      if (pidRecusa) await base44.asServiceRole.entities.Pedido.update(pidRecusa, { status: 'recusado' }).catch(() => null);
       return Response.json({ ok: true, msg: 'Documento recusado processado' });
     }
 
-    // ── Documento ASSINADO ──────────────────────────────────────────────────
     const signer0 = (body?.signers || body?.document?.signers || [])[0] || {};
     const ipAssinante = signer0.ip || signer0.signer_ip || body?.ip || '';
     const navAssinante = signer0.user_agent || signer0.device || body?.user_agent || '';
 
-    // 1. Atualiza o contrato → assinado
     if (contrato) {
       await base44.asServiceRole.entities.Contrato.update(contrato.id, {
-        status: 'assinado',
-        data_assinatura: agora,
-        url_pdf: urlPdf,
+        status: 'assinado', data_assinatura: agora, url_pdf: urlPdf,
         ...(ipAssinante ? { ip_assinante: ipAssinante } : {}),
         ...(navAssinante ? { navegador_assinante: navAssinante } : {}),
       });
@@ -94,90 +71,50 @@ Deno.serve(async (req) => {
 
     if (pidAssinatura) {
       pedido = await base44.asServiceRole.entities.Pedido.get(pidAssinatura);
-
       if (pedido) {
-        // 2. Avança o pedido para "assinado"
         const statusNaoFinalizado = !['assinado', 'ativado', 'recusado'].includes(pedido.status);
         if (statusNaoFinalizado) {
           await base44.asServiceRole.entities.Pedido.update(pidAssinatura, {
-            status: 'assinado',
-            data_contrato: agora,
-            link_assinatura: urlPdf || pedido.link_assinatura,
-            signed_file_url: urlPdf || '',
+            status: 'assinado', data_contrato: agora,
+            link_assinatura: urlPdf || pedido.link_assinatura, signed_file_url: urlPdf || '',
           });
           console.log(`Pedido ${pidAssinatura} avançado para "assinado"`);
         }
 
-        // 3. Atualiza etapa do lead
         if (pedido.lead_id) {
-          await base44.asServiceRole.entities.Lead.update(pedido.lead_id, {
-            etapa_funil: 'contrato',
-          }).catch(e => console.warn('Erro ao atualizar lead:', e.message));
+          await base44.asServiceRole.entities.Lead.update(pedido.lead_id, { etapa_funil: 'contrato' }).catch((e: Error) => console.warn('Erro ao atualizar lead:', e.message));
         }
 
-        // 4. Notifica o vendedor por e-mail
-        const vendedor = pedido.vendedor_id
-          ? await base44.asServiceRole.entities.User.get(pedido.vendedor_id).catch(() => null)
-          : null;
+        const vendedor = pedido.vendedor_id ? await base44.asServiceRole.entities.User.get(pedido.vendedor_id).catch(() => null) : null;
         const vendedorEmail = vendedor?.email || '';
-
         const podeNotificar = vendedorEmail && !jaAssinado && !pedido.email_assinatura_enviado;
         if (podeNotificar) {
           await base44.asServiceRole.integrations.Core.SendEmail({
-            to: vendedorEmail,
-            from_name: 'CRM — ZapSign',
+            to: vendedorEmail, from_name: 'CRM — ZapSign',
             subject: `✅ Contrato assinado: ${pedido.lead_nome}`,
             body: `Olá ${pedido.vendedor_nome || 'Vendedor'},\n\n🎉 O cliente ${pedido.lead_nome} assinou o contrato no ZapSign!\n\nO status do pedido foi atualizado automaticamente para "Assinado".\n\nPróximos passos:\n1. Verificar viabilidade técnica (se ainda pendente)\n2. Ativar cliente no IXC\n3. Registrar OS de instalação\n\nAcesse o CRM para prosseguir.\n\n---\nEsta é uma mensagem automática. Não responda este e-mail.`,
           });
           await base44.asServiceRole.entities.Pedido.update(pidAssinatura, { email_assinatura_enviado: true }).catch(() => null);
           notificacaoEnviada = true;
           console.log(`E-mail de notificação enviado para ${vendedorEmail}`);
-        } else if (!vendedorEmail) {
-          console.warn('Vendedor sem e-mail cadastrado, notificação não enviada.');
         }
       }
     }
 
-    // 5. Envia alerta WhatsApp para o gerente
     if (!jaAssinado) {
       try {
         const configs = await base44.asServiceRole.entities.ConfigRegras.list();
         const cfg = configs[0] || {};
         const gerentePhone = (cfg.gerente_whatsapp || '').replace(/\D/g, '');
-
         if (gerentePhone) {
-          const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/+$/, '');
-          const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
-          const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
-          let instanceName = cfg.evo_instance || '';
-          if (!instanceName) {
-            const statuses = await base44.asServiceRole.entities.EvolutionStatus.list();
-            instanceName = statuses[0]?.instance_name || '';
-          }
-
-          if (EVOLUTION_URL && (EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY) && instanceName) {
-            const nomeCliente = pedido?.lead_nome || contrato?.cliente_nome || 'Cliente';
-            const planoNome = pedido?.plano_nome || '';
-            const valor = pedido?.valor != null ? `R$ ${Number(pedido.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
-            const vendedorNome = pedido?.vendedor_nome || '';
-            const msg = `✅ *CONTRATO ASSINADO*\n\n👤 Cliente: *${nomeCliente}*\n📦 Plano: ${planoNome}\n💰 Valor: ${valor}\n👨‍💼 Vendedor: ${vendedorNome}\n\nO contrato foi assinado e o pedido foi atualizado para "Assinado".\nVerifique os próximos passos no CRM.`;
-
-            const waResp = await fetch(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY,
-              },
-              body: JSON.stringify({ number: gerentePhone, text: msg, linkPreview: false }),
-            });
-
-            if (waResp.ok) {
-              console.log(`Alerta WhatsApp enviado ao gerente: ${gerentePhone}`);
-            } else {
-              const err = await waResp.text().catch(() => '');
-              console.warn(`Falha ao enviar WhatsApp ao gerente: ${err}`);
-            }
-          }
+          const nomeCliente = pedido?.lead_nome || contrato?.cliente_nome || 'Cliente';
+          const planoNome = pedido?.plano_nome || '';
+          const valor = pedido?.valor != null ? `R$ ${Number(pedido.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+          const vendedorNome = pedido?.vendedor_nome || '';
+          const msg = `✅ *CONTRATO ASSINADO*\n\n👤 Cliente: *${nomeCliente}*\n📦 Plano: ${planoNome}\n💰 Valor: ${valor}\n👨‍💼 Vendedor: ${vendedorNome}\n\nO contrato foi assinado e o pedido foi atualizado para "Assinado".\nVerifique os próximos passos no CRM.`;
+          const waResult = await enviarWhatsApp(base44, gerentePhone, msg);
+          if (waResult.ok) console.log(`Alerta WhatsApp enviado ao gerente: ${gerentePhone}`);
+          else console.warn(`Falha ao enviar WhatsApp ao gerente: ${waResult.error}`);
         } else {
           console.warn('gerente_whatsapp não configurado em ConfigRegras, alerta não enviado.');
         }
@@ -186,15 +123,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({
-      ok: true,
-      contrato_id: contrato?.id || null,
-      pedido_id: pidAssinatura || null,
-      notificacao_enviada: notificacaoEnviada,
-    });
-    } catch (error) {
-    console.error('Erro no webhook ZapSign:', error.message);
-    // Sempre responde 200 para o ZapSign não reenviar indefinidamente
-    return Response.json({ ok: false, error: error.message });
+    return Response.json({ ok: true, contrato_id: contrato?.id || null, pedido_id: pidAssinatura || null, notificacao_enviada: notificacaoEnviada });
+  } catch (error) {
+    console.error('Erro no webhook ZapSign:', (error as Error).message);
+    return Response.json({ ok: false, error: (error as Error).message });
   }
 });
