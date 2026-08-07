@@ -7,6 +7,16 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // ── Verificação de origem: secret compartilhado ──────────────────────
+    // ZapSign não envia assinatura HMAC; usamos um secret no header ou query.
+    // Registre o webhook no ZapSign com a URL: https://.../webhookZapSign?secret=<ZAPSIGN_TOKEN>
+    const zapToken = Deno.env.get('ZAPSIGN_TOKEN') || '';
+    const providedSecret = req.headers.get('x-webhook-secret') || new URL(req.url).searchParams.get('secret') || '';
+    if (zapToken && providedSecret !== zapToken) {
+      console.warn('Webhook ZapSign rejeitado: secret inválido');
+      return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     console.log('ZapSign webhook recebido:', JSON.stringify(body).slice(0, 300));
 

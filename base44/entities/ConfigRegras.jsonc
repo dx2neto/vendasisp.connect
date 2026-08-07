@@ -103,5 +103,27 @@
       "description": "WhatsApp do gerente para receber alertas (somente d\u00edgitos com DDI: 55+DDD+n\u00ba)"
     }
   },
-  "required": []
+  "required": [],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
