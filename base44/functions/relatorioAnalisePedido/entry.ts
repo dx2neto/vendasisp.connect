@@ -4,23 +4,16 @@ import { jsPDF } from 'npm:jspdf@4.0.0';
 const onlyDigits = (v) => String(v || '').replace(/\D/g, '');
 
 function getInstancias() {
-  const raw = Deno.env.get('IXC_INSTANCES');
-  if (raw) {
-    try {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr) && arr.length) {
-        return arr.map((i, idx) => ({
-          id: i.id ?? idx,
-          cidade: i.cidade || i.nome || `IXC #${i.id ?? idx}`,
-          host: String(i.host || '').replace(/\/$/, ''),
-          auth: i.auth || i.token_basic || '',
-        })).filter((i) => i.host && i.auth);
-      }
-    } catch (_) { /* fallback */ }
+  const apiUrl = (Deno.env.get('IXC_API_URL') || '').replace(/\/+$/, '');
+  const adminToken = Deno.env.get('IXC_ADMIN_TOKEN') || '';
+  const legacyAuth = (Deno.env.get('IXC_AUTH_BASIC') || '').replace(/^Basic\s+/i, '');
+  const auth = adminToken || legacyAuth;
+  if (apiUrl && auth) {
+    return [{ id: 0, cidade: 'IXC (padrão)', host: apiUrl.replace(/\/webservice\/v1$/i, ''), auth }];
   }
   const host = (Deno.env.get('IXC_HOST') || '').replace(/\/$/, '');
-  const auth = Deno.env.get('IXC_AUTH_BASIC') || '';
-  return host && auth ? [{ id: 0, cidade: 'IXC (padrão)', host, auth }] : [];
+  if (host && auth) return [{ id: 0, cidade: 'IXC (padrão)', host, auth }];
+  return [];
 }
 
 async function ixcListar(inst, endpoint, body) {
