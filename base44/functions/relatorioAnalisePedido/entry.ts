@@ -308,14 +308,9 @@ Deno.serve(async (req) => {
     doc.text(`Relatório gerado por ${user.full_name || user.email || 'gerência'} em ${dataFormatada}`, W / 2, 291, { align: 'center' });
     doc.text('CONNECT TELECOM LTDA — uso interno e confidencial', W / 2, 295, { align: 'center' });
 
-    const pdfBytes = doc.output('arraybuffer');
-    return new Response(pdfBytes, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=analise_${String(lead?.nome || pedido.lead_nome || 'cliente').replace(/\s+/g, '_')}_${numeroPedido.replace('#', '')}.pdf`,
-      },
-    });
+    const pdfBase64 = doc.output('datauristring');
+    const filename = `analise_${String(lead?.nome || pedido.lead_nome || 'cliente').replace(/\s+/g, '_')}_${numeroPedido.replace('#', '')}.pdf`;
+    return Response.json({ pdf_base64: pdfBase64, filename, pedido_id: pedido.id });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -31,18 +31,14 @@ export default function PedidoAcoes({ pedido, lead }) {
   const baixarRelatorio = async () => {
     setBaixandoRel(true);
     try {
-      const fnUrl = base44.functions.getUrl?.('relatorioAnalisePedido') || `/api/functions/relatorioAnalisePedido`;
-      const token = base44.auth.getToken?.() || '';
-      const res = await fetch(fnUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        credentials: 'include',
-        body: JSON.stringify({ pedido_id: pedido.id }),
-      });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro ao gerar relatório'); }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
+      const res = await base44.functions.invoke('relatorioAnalisePedido', { pedido_id: pedido.id });
+      const d = res.data;
+      if (!d?.pdf_base64) throw new Error(d?.error || 'Erro ao gerar relatório');
+      const byteString = atob(d.pdf_base64.split(',')[1] || d.pdf_base64);
+      const bytes = new Uint8Array(byteString.length);
+      for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      setPdfUrl(URL.createObjectURL(blob));
     } catch (e) {
       toast({ title: 'Erro ao gerar relatório', description: errorMessage(e), variant: 'destructive' });
     } finally {
