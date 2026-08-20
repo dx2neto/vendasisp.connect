@@ -33,6 +33,7 @@ const ROUTE_ROLES = {
   '/funil': ['admin', 'gerente', 'vendedor'],
   '/meu-funil': ['vendedor', 'gerente', 'admin'],
   '/checklist-instalacao': ['admin', 'gerente', 'vendedor'],
+  '/nps': ['admin', 'gerente'],
   '/esteira': ['admin', 'gerente', 'vendedor'],
   '/leads': ['admin', 'gerente', 'vendedor'],
   '/pedidos': ['admin', 'gerente', 'vendedor', 'revendedor'],
