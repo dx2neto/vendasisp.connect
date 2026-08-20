@@ -1,0 +1,96 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "entity_type": {
+      "type": "string",
+      "description": "Nome da entidade auditada"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID do registro auditado"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete",
+        "login",
+        "logout",
+        "export",
+        "sensitive_view"
+      ],
+      "description": "Tipo de a\u00e7\u00e3o realizada"
+    },
+    "changes": {
+      "type": "object",
+      "description": "Dados antes/depois da altera\u00e7\u00e3o",
+      "properties": {
+        "before": {
+          "type": "object"
+        },
+        "after": {
+          "type": "object"
+        },
+        "fields_changed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que realizou a a\u00e7\u00e3o"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio"
+    },
+    "user_role": {
+      "type": "string",
+      "description": "Papel do usu\u00e1rio"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP de origem"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User-Agent do navegador"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Motivo da altera\u00e7\u00e3o (quando aplic\u00e1vel)"
+    },
+    "sensitive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a a\u00e7\u00e3o envolve dados sens\u00edveis (LGPD)"
+    }
+  },
+  "required": [
+    "entity_type",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

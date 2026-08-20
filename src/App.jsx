@@ -49,6 +49,9 @@ import GestaoIndicacoes from "@/pages/GestaoIndicacoes";
 import StatusIntegracoes from "@/pages/StatusIntegracoes";
 import PainelIXCSoft from "@/pages/PainelIXCSoft";
 import VendedoresIXC from "@/pages/VendedoresIXC";
+import Seguranca from "@/pages/Seguranca";
+import Auditoria from "@/pages/Auditoria";
+import LGPD from "@/pages/LGPD";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -111,6 +114,9 @@ const AuthenticatedApp = () => {
           <Route path="/status-integracoes" element={<StatusIntegracoes />} />
           <Route path="/painel-ixc" element={<PainelIXCSoft />} />
           <Route path="/vendedores-ixc" element={<VendedoresIXC />} />
+          <Route path="/seguranca" element={<Seguranca />} />
+          <Route path="/auditoria" element={<Auditoria />} />
+          <Route path="/lgpd" element={<LGPD />} />
         </Route>
       </Route>
 

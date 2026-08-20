@@ -2,7 +2,8 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingCart, Kanban, CreditCard, FileText,
   Settings, Briefcase, DollarSign, Package, LogOut, ChevronLeft, ChevronRight,
-  Zap, Plug, BarChart3, Gift, Globe, Receipt, Gauge, Landmark, UserCog, MessageSquare, TrendingUp, Database
+  Zap, Plug, BarChart3, Gift, Globe, Receipt, Gauge, Landmark, UserCog, MessageSquare, TrendingUp, Database,
+  Shield, Eye, ShieldCheck
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -38,6 +39,9 @@ const menuItems = [
   { label: "Painel IXCSoft",icon: Database,          path: "/painel-ixc",     roles: ["admin","gerente"] },
   { label: "Vendedores IXC",icon: UserCog,           path: "/vendedores-ixc", roles: ["admin"] },
   { label: "Integrações",   icon: Plug,              path: "/integracoes",   roles: ["admin"] },
+  { label: "Segurança",     icon: Shield,            path: "/seguranca",     roles: ["admin"] },
+  { label: "Auditoria",     icon: Eye,               path: "/auditoria",     roles: ["admin"] },
+  { label: "LGPD",          icon: ShieldCheck,       path: "/lgpd",           roles: ["admin"] },
   { label: "Configurações", icon: Settings,          path: "/configuracoes", roles: ["admin"] },
 ];
 
