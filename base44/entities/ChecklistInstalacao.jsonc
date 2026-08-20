@@ -1,0 +1,181 @@
+{
+  "name": "ChecklistInstalacao",
+  "type": "object",
+  "properties": {
+    "pedido_id": {
+      "type": "string",
+      "description": "ID do pedido vinculado"
+    },
+    "os_id": {
+      "type": "string",
+      "description": "ID da OS no IXC (se aplic\u00e1vel)"
+    },
+    "tecnico_id": {
+      "type": "string"
+    },
+    "tecnico_nome": {
+      "type": "string"
+    },
+    "data_agendada": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_concluida": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "agendado",
+        "em_andamento",
+        "concluido",
+        "cancelado"
+      ],
+      "default": "agendado"
+    },
+    "endereco_instalacao": {
+      "type": "string"
+    },
+    "cidade": {
+      "type": "string"
+    },
+    "itens": {
+      "type": "object",
+      "description": "Checklist t\u00e9cnico de instala\u00e7\u00e3o",
+      "properties": {
+        "chegada_cliente": {
+          "type": "boolean",
+          "default": false
+        },
+        "confirmacao_endereco": {
+          "type": "boolean",
+          "default": false
+        },
+        "cto_identificada": {
+          "type": "boolean",
+          "default": false
+        },
+        "cto_numero": {
+          "type": "string"
+        },
+        "porta_cto": {
+          "type": "string"
+        },
+        "olt_identificada": {
+          "type": "boolean",
+          "default": false
+        },
+        "sinal_optico_dbm": {
+          "type": "string",
+          "description": "Leitura do sinal \u00f3ptico"
+        },
+        "drop_instalado": {
+          "type": "boolean",
+          "default": false
+        },
+        "metragem_drop": {
+          "type": "number"
+        },
+        "ont_serial": {
+          "type": "string",
+          "description": "Serial da ONT"
+        },
+        "ont_mac": {
+          "type": "string",
+          "description": "MAC da ONT"
+        },
+        "roteador_modelo": {
+          "type": "string"
+        },
+        "roteador_mac": {
+          "type": "string"
+        },
+        "wifi_ssid": {
+          "type": "string"
+        },
+        "wifi_senha": {
+          "type": "string"
+        },
+        "autenticacao_testada": {
+          "type": "boolean",
+          "default": false
+        },
+        "velocidade_testada": {
+          "type": "boolean",
+          "default": false
+        },
+        "velocidade_download_mbps": {
+          "type": "number"
+        },
+        "velocidade_upload_mbps": {
+          "type": "number"
+        },
+        "fotos_evidencias": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "URLs das fotos de evid\u00eancia"
+        },
+        "aceite_cliente": {
+          "type": "boolean",
+          "default": false
+        },
+        "observacoes": {
+          "type": "string"
+        }
+      }
+    },
+    "pode_concluir": {
+      "type": "boolean",
+      "default": false,
+      "description": "Valida\u00e7\u00e3o autom\u00e1tica de campos obrigat\u00f3rios"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "ID de rastreamento"
+    }
+  },
+  "required": [
+    "pedido_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.tecnico_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {},
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.tecnico_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

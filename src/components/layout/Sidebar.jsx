@@ -32,6 +32,7 @@ const menuItems = [
   { label: "Roleta Prêmios",icon: Gift,              path: "/roleta-config", roles: ["admin"] },
   { label: "Site",          icon: Globe,             path: "/site",          external: true, roles: ["admin"] },
   { label: "2ª Via / Boleto",icon: Receipt,          path: "/boleto",        external: true, roles: ["admin","gerente","vendedor","revendedor"] },
+  { label: "Central Assinante",icon: UserCog,        path: "/central",       external: true, roles: ["admin","gerente","vendedor","revendedor"] },
   { label: "Planômetro",    icon: Gauge,             path: "/planometro",    external: true, roles: ["admin","gerente","vendedor"] },
   { label: "Atendimento",   icon: MessageSquare,     path: "/atendimento",   roles: ["admin","gerente","vendedor"] },
   { label: "Config. Atend.",icon: Settings,          path: "/config-atendimento", roles: ["admin"] },

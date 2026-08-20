@@ -1,0 +1,111 @@
+{
+  "name": "NPS",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente (IXC ou interno)"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "contrato_id": {
+      "type": "string",
+      "description": "ID do contrato"
+    },
+    "pedido_id": {
+      "type": "string",
+      "description": "ID do pedido que originou a venda"
+    },
+    "vendedor_id": {
+      "type": "string"
+    },
+    "vendedor_nome": {
+      "type": "string"
+    },
+    "tecnico_id": {
+      "type": "string"
+    },
+    "tecnico_nome": {
+      "type": "string"
+    },
+    "cidade": {
+      "type": "string"
+    },
+    "plano_nome": {
+      "type": "string"
+    },
+    "nota": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Nota NPS 0-10"
+    },
+    "comentario": {
+      "type": "string",
+      "description": "Coment\u00e1rio do cliente"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "pos_venda",
+        "atendimento",
+        "instalacao"
+      ],
+      "default": "pos_venda"
+    },
+    "data_coleta": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "classificacao": {
+      "type": "string",
+      "enum": [
+        "detrator",
+        "neutro",
+        "promotor"
+      ],
+      "description": "Classifica\u00e7\u00e3o autom\u00e1tica: 0-6 detrator, 7-8 neutro, 9-10 promotor"
+    },
+    "acionado_followup": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se criou tarefa/atendimento para nota baixa"
+    }
+  },
+  "required": [
+    "nota"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {},
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

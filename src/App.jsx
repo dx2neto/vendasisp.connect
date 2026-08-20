@@ -54,6 +54,7 @@ const VendedoresIXC = lazy(() => import("@/pages/VendedoresIXC"));
 const Seguranca = lazy(() => import("@/pages/Seguranca"));
 const Auditoria = lazy(() => import("@/pages/Auditoria"));
 const LGPD = lazy(() => import("@/pages/LGPD"));
+const CentralAssinante = lazy(() => import("@/pages/CentralAssinante"));
 
 const PageLoader = () => (
   <div className="fixed inset-0 flex items-center justify-center bg-background">
@@ -86,6 +87,7 @@ const AuthenticatedApp = () => {
       <Route path="/boleto" element={<Suspense fallback={<PageLoader />}><BoletoFacil /></Suspense>} />
       <Route path="/planometro" element={<Suspense fallback={<PageLoader />}><Planometro /></Suspense>} />
       <Route path="/indique" element={<Suspense fallback={<PageLoader />}><Indicacao /></Suspense>} />
+      <Route path="/central" element={<Suspense fallback={<PageLoader />}><CentralAssinante /></Suspense>} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<Suspense fallback={<PageLoader />}><AppLayout /></Suspense>}>

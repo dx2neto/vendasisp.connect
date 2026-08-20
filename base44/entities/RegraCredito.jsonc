@@ -1,0 +1,108 @@
+{
+  "name": "RegraCredito",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome da regra de cr\u00e9dito"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "tipo_pessoa": {
+      "type": "string",
+      "enum": [
+        "F",
+        "J",
+        "ambas"
+      ],
+      "default": "ambas"
+    },
+    "score_minimo": {
+      "type": "number",
+      "description": "Score m\u00ednimo para aprova\u00e7\u00e3o autom\u00e1tica"
+    },
+    "probabilidade_maxima": {
+      "type": "number",
+      "description": "Probabilidade m\u00e1xima de inadimpl\u00eancia (%)"
+    },
+    "bloquear_se_restricao": {
+      "type": "boolean",
+      "default": true,
+      "description": "Bloqueia se houver restri\u00e7\u00e3o ativa"
+    },
+    "acao": {
+      "type": "string",
+      "enum": [
+        "aprovar",
+        "alertar",
+        "analise_manual",
+        "bloquear"
+      ],
+      "description": "A\u00e7\u00e3o do motor de decis\u00e3o"
+    },
+    "prioridade": {
+      "type": "number",
+      "default": 1,
+      "description": "Ordem de avalia\u00e7\u00e3o (menor = maior prioridade)"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    },
+    "condicoes": {
+      "type": "array",
+      "description": "Condi\u00e7\u00f5es adicionais (chave, operador, valor)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "campo": {
+            "type": "string",
+            "description": "Campo da resposta da API de cr\u00e9dito"
+          },
+          "operador": {
+            "type": "string",
+            "enum": [
+              "==",
+              "!=",
+              ">",
+              "<",
+              ">=",
+              "<=",
+              "contains"
+            ]
+          },
+          "valor": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "nome",
+    "acao"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
