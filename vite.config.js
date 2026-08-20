@@ -4,11 +4,9 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  logLevel: 'error', // Suppress warnings, only show errors
+  logLevel: 'error',
   plugins: [
     base44({
-      // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
-      // can be removed if the code has been updated to use the new SDK imports from @base44/sdk
       legacySDKImports: process.env.BASE44_LEGACY_SDK_IMPORTS === 'true',
       hmrNotifier: true,
       navigationNotifier: true,
@@ -16,5 +14,24 @@ export default defineConfig({
       visualEditAgent: true
     }),
     react(),
-  ]
+  ],
+  build: {
+    // Code splitting otimizado por categoria
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs'],
+          'charts-vendor': ['recharts'],
+          'utils-vendor': ['lodash', 'date-fns', 'moment'],
+          'query-vendor': ['@tanstack/react-query'],
+          'icons-vendor': ['lucide-react'],
+        },
+      },
+    },
+    // Aumenta o chunk size warning limit (app é grande)
+    chunkSizeWarningLimit: 1000,
+    // Source maps apenas em desenvolvimento
+    sourcemap: false,
+  },
 });
