@@ -31,6 +31,7 @@ const ROUTE_ROLES = {
   '/status-integracoes': ['admin', 'gerente'],
   '/painel-ixc': ['admin', 'gerente'],
   '/funil': ['admin', 'gerente', 'vendedor'],
+  '/meu-funil': ['vendedor', 'gerente', 'admin'],
   '/esteira': ['admin', 'gerente', 'vendedor'],
   '/leads': ['admin', 'gerente', 'vendedor'],
   '/pedidos': ['admin', 'gerente', 'vendedor', 'revendedor'],

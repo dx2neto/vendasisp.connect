@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, ShoppingCart, Kanban, CreditCard, FileText,
   Settings, Briefcase, DollarSign, Package, LogOut, ChevronLeft, ChevronRight,
   Zap, Plug, BarChart3, Gift, Globe, Receipt, Gauge, Landmark, UserCog, MessageSquare, TrendingUp, Database,
-  Shield, Eye, ShieldCheck
+  Shield, Eye, ShieldCheck, Target
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -16,6 +16,7 @@ const menuItems = [
   { label: "Meu Painel",    icon: UserCog,          path: "/vendedor",      roles: ["vendedor"] },
   { label: "Painel Revenda", icon: Briefcase,        path: "/painel-revendedor", roles: ["revendedor"] },
   { label: "Funil de Vendas", icon: TrendingUp,       path: "/funil",         roles: ["admin","gerente","vendedor"] },
+  { label: "Meu Funil",       icon: Target,            path: "/meu-funil",      roles: ["vendedor","gerente"] },
   { label: "Indicações",    icon: Gift,              path: "/indicacoes",    roles: ["admin","gerente"] },
   { label: "Esteira",       icon: Kanban,            path: "/esteira",       roles: ["admin","gerente","vendedor"] },
   { label: "Leads",         icon: Users,             path: "/leads",         roles: ["admin","gerente","vendedor"] },
