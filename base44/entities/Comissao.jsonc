@@ -45,10 +45,27 @@
     "valor"
   ],
   "rls": {
-    "read": {},
+    "read": {
+      "$or": [
+        {
+          "data.vendedor_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "create": {},
     "update": {
       "$or": [
+        {
+          "data.vendedor_id": "{{user.id}}"
+        },
         {
           "created_by_id": "{{user.id}}"
         },
