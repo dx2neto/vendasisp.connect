@@ -38,6 +38,7 @@ const menuItems = [
   { label: "Atendimento",   icon: MessageSquare,     path: "/atendimento",   roles: ["admin","gerente","vendedor"] },
   { label: "Checklist Inst.",icon: Wrench,            path: "/checklist-instalacao", roles: ["admin","gerente","vendedor"] },
   { label: "NPS",             icon: Star,              path: "/nps",             roles: ["admin","gerente"] },
+  { label: "Regras Crédito",  icon: ShieldCheck,      path: "/regras-credito",  roles: ["admin"] },
   { label: "Config. Atend.",icon: Settings,          path: "/config-atendimento", roles: ["admin"] },
   { label: "Status Integ.", icon: Plug,              path: "/status-integracoes", roles: ["admin","gerente"] },
   { label: "Painel IXCSoft",icon: Database,          path: "/painel-ixc",     roles: ["admin","gerente"] },

@@ -115,42 +115,55 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Erro na API Valido', detalhe: data, resultado: 'erro' }, { status: 502 });
     }
 
-    // Config de decisão (motor | score)
-    const configs = await base44.asServiceRole.entities.ConfigRegras.list();
-    const cfg = configs[0] || {};
-    const mode = cfg.credit_decision_mode || 'score';
-    const scoreMinimo = cfg.credit_approve_score ?? cfg.score_minimo_credito ?? 400;
-    const blockOnRestriction = cfg.credit_block_on_restriction ?? true;
-    const scorePath = cfg.credit_score_path || '';
-    const decisionPath = cfg.credit_decision_path || '';
-
-    // Extrai score (por path configurado ou fallback)
-    const score = scorePath
-      ? getPath(data, scorePath)
-      : (data?.score?.pontuacao ?? data?.pontuacao ?? data?.Score?.Valor ?? null);
-
+    // Extrai campos da resposta (para auditoria/log)
+    const score = data?.score?.pontuacao ?? data?.pontuacao ?? data?.Score?.Valor ?? null;
     const classAbc = data?.score?.classificacaoAbc ?? data?.classificacaoAbc ?? null;
     const classNro = data?.score?.classificacao ?? data?.classificacao ?? null;
     const probInad = data?.probabilidadeInadimplencia ?? data?.score?.probabilidadeInadimplencia ?? null;
     const textoRisco = data?.textoRisco ?? data?.score?.textoRisco ?? null;
     const chaveConsulta = data?.chaveConsulta ?? data?.protocolo ?? null;
-
     const temRestricao = temRestricaoAtiva(data);
 
-    // Decisão
-    let resultado = 'manual';
-    if (mode === 'motor' && decisionPath) {
-      const decisao = String(getPath(data, decisionPath) ?? '').toLowerCase();
-      if (decisao.includes('aprov') || decisao === 'a' || decisao === 'true') resultado = 'aprovado';
-      else if (decisao.includes('reprov') || decisao === 'r' || decisao === 'false') resultado = 'reprovado';
-    } else {
-      // modo score
+    // Delega a decisão para o motorCredito (regras configuráveis)
+    let decisaoMotor: any;
+    try {
+      const motorResp = await base44.functions.invoke('motorCredito', {
+        pedido_id,
+        credit_response: rawData,
+        score: Number(score ?? 0),
+        probabilidade: Number(probInad ?? 0),
+        restricao: temRestricao,
+        tipo_pessoa: tipoPessoa,
+        lead_nome: pedido.lead_nome || '',
+        cpf_cnpj,
+      });
+      decisaoMotor = motorResp;
+    } catch (motorError) {
+      console.error('Erro ao invocar motorCredito, usando fallback:', motorError);
+      // Fallback simples se o motor falhar
+      const configs = await base44.asServiceRole.entities.ConfigRegras.list();
+      const cfg = configs[0] || {};
+      const scoreMinimo = cfg.credit_approve_score ?? cfg.score_minimo_credito ?? 400;
+      const blockOnRestriction = cfg.credit_block_on_restriction ?? true;
+      let resultadoFallback = 'manual';
       if (score !== null) {
-        if (blockOnRestriction && temRestricao) resultado = 'reprovado';
-        else if (score >= scoreMinimo) resultado = 'aprovado';
-        else resultado = 'reprovado';
+        if (blockOnRestriction && temRestricao) resultadoFallback = 'reprovado';
+        else if (score >= scoreMinimo) resultadoFallback = 'aprovado';
+        else resultadoFallback = 'reprovado';
       }
+      decisaoMotor = {
+        decisao: resultadoFallback === 'aprovado' ? 'aprovar' : resultadoFallback === 'reprovado' ? 'bloquear' : 'analise_manual',
+        regra_aplicada: 'Fallback (erro do motor)',
+        motivo: `Score ${score}, restrição ${temRestricao}`,
+        score: Number(score ?? 0),
+        detalhes: { tem_restricao: temRestricao },
+      };
     }
+
+    // Traduz decisão do motor para resultado do pedido
+    const resultado = decisaoMotor.decisao === 'aprovar' ? 'aprovado'
+      : decisaoMotor.decisao === 'bloquear' ? 'reprovado'
+      : 'manual';
 
     const agora = new Date().toISOString();
 
@@ -166,6 +179,7 @@ Deno.serve(async (req) => {
       texto_risco: textoRisco,
       chave_consulta: chaveConsulta,
       resultado,
+      observacao: `${decisaoMotor.regra_aplicada}: ${decisaoMotor.motivo}`,
     });
 
     // Atualiza Pedido com campos de crédito + status
@@ -175,7 +189,7 @@ Deno.serve(async (req) => {
 
     const creditStatusValue = resultado === 'aprovado' ? 'aprovado'
       : resultado === 'reprovado' ? 'reprovado'
-      : null; // manual = pendente, não seta credit_status
+      : null;
 
     await base44.asServiceRole.entities.Pedido.update(pedido_id, {
       status: novoStatus,
@@ -198,6 +212,7 @@ Deno.serve(async (req) => {
       score,
       classificacao_abc: classAbc,
       tem_restricao: temRestricao,
+      decisao_motor: decisaoMotor,
       analise,
     });
   } catch (error) {
