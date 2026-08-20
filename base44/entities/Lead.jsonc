@@ -132,12 +132,32 @@
     "cnpj_cpf"
   ],
   "rls": {
-    "read": {},
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.vendedor_id": "{{user.id}}"
+        },
+        {
+          "data.revendedor_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "create": {},
     "update": {
       "$or": [
         {
           "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.vendedor_id": "{{user.id}}"
         },
         {
           "user_condition": {
