@@ -32,6 +32,7 @@ const ROUTE_ROLES = {
   '/painel-ixc': ['admin', 'gerente'],
   '/funil': ['admin', 'gerente', 'vendedor'],
   '/meu-funil': ['vendedor', 'gerente', 'admin'],
+  '/checklist-instalacao': ['admin', 'gerente', 'vendedor'],
   '/esteira': ['admin', 'gerente', 'vendedor'],
   '/leads': ['admin', 'gerente', 'vendedor'],
   '/pedidos': ['admin', 'gerente', 'vendedor', 'revendedor'],
