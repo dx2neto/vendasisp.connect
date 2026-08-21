@@ -4,8 +4,6 @@
 // SECRETS:
 //   IXC_API_URL      -> URL base (ex: https://sistema.cnnct.net.br/webservice/v1/)
 //   IXC_ADMIN_TOKEN  -> token Base64 no formato id:hash (pronto para Basic auth)
-//   IXC_HOST         -> fallback legacy (sem /webservice/v1)
-//   IXC_AUTH_BASIC   -> fallback legacy (token já em base64)
 //
 // Recursos:
 //   - Retry exponencial (3 tentativas, backoff 1s/2s/4s)
@@ -19,14 +17,8 @@ import { secrets } from "base44:runtime";
 // ===================== CONFIGURAÇÃO =====================
 
 export function getIxcConfig() {
-  let apiUrl = (secrets.get("IXC_API_URL") || "").replace(/\/+$/, "");
-  if (!apiUrl) {
-    const host = (secrets.get("IXC_HOST") || "").replace(/\/+$/, "").replace(/\/webservice\/v1$/i, "");
-    if (host) apiUrl = `${host}/webservice/v1`;
-  }
-  const adminToken = secrets.get("IXC_ADMIN_TOKEN") || "";
-  const legacyAuth = (secrets.get("IXC_AUTH_BASIC") || "").replace(/^Basic\s+/i, "");
-  const auth = adminToken || legacyAuth || "";
+  const apiUrl = (secrets.get("IXC_API_URL") || "").replace(/\/+$/, "");
+  const auth = secrets.get("IXC_ADMIN_TOKEN") || "";
   return { apiUrl, auth };
 }
 
