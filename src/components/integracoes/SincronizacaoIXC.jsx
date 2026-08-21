@@ -12,7 +12,7 @@ const SYNC_ITEMS = [
     label: "Clientes / Leads",
     icon: Users,
     description: "Importa clientes existentes do IXC como Leads no CRM",
-    tipo: "sync_leads",
+    acao: "importar_clientes",
     color: "text-blue-600 bg-blue-50",
   },
   {
@@ -20,7 +20,7 @@ const SYNC_ITEMS = [
     label: "Filiais",
     icon: Building2,
     description: "Lista filiais cadastradas no IXC",
-    tipo: "filiais",
+    acao: "filiais",
     color: "text-purple-600 bg-purple-50",
   },
   {
@@ -28,7 +28,7 @@ const SYNC_ITEMS = [
     label: "Vendedores",
     icon: Users,
     description: "Consulta vendedores cadastrados no IXC",
-    tipo: "vendedores",
+    acao: "vendedores",
     color: "text-green-600 bg-green-50",
   },
   {
@@ -36,7 +36,7 @@ const SYNC_ITEMS = [
     label: "Assuntos de OS",
     icon: Wrench,
     description: "Lista assuntos disponíveis para ordens de serviço",
-    tipo: "assuntos",
+    acao: "assuntos_os",
     color: "text-orange-600 bg-orange-50",
   },
   {
@@ -44,7 +44,7 @@ const SYNC_ITEMS = [
     label: "Setores de OS",
     icon: Network,
     description: "Setores responsáveis pelas ordens de serviço",
-    tipo: "setores",
+    acao: "setores_os",
     color: "text-cyan-600 bg-cyan-50",
   },
   {
@@ -52,7 +52,7 @@ const SYNC_ITEMS = [
     label: "Produtos / Planos",
     icon: Package,
     description: "Produtos e modelos de planos do IXC",
-    tipo: "planos",
+    acao: "produtos",
     color: "text-indigo-600 bg-indigo-50",
   },
   {
@@ -60,7 +60,7 @@ const SYNC_ITEMS = [
     label: "Modelos de Contrato",
     icon: FileText,
     description: "Importa modelos de contrato do IXC para Templates",
-    tipo: "sync_modelos",
+    acao: "importar_modelos",
     color: "text-rose-600 bg-rose-50",
   },
 ];
@@ -97,7 +97,7 @@ function ResultTable({ data }) {
   );
 }
 
-function SyncCard({ item, onSync }) {
+function SyncCard({ item }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -109,7 +109,7 @@ function SyncCard({ item, onSync }) {
     setError(null);
     setResult(null);
     try {
-      const res = await base44.functions.invoke("sincronizarIXC", { tipo: item.tipo });
+      const res = await base44.functions.invoke("ixcSync", { acao: item.acao });
       const data = res.data;
       setResult(data);
       setExpanded(true);
@@ -120,14 +120,13 @@ function SyncCard({ item, onSync }) {
     }
   };
 
-  // Extrai a lista relevante do resultado
   const getListData = () => {
     if (!result) return null;
     const candidates = [
       result.filiais,
       result.vendedores,
-      result.planos_ixc,
-      result.produtos_ixc,
+      result.planos,
+      result.produtos,
       result.assuntos_os,
       result.setores_os,
     ];
@@ -136,8 +135,8 @@ function SyncCard({ item, onSync }) {
 
   const getSummary = () => {
     if (!result) return null;
-    if (result.leads_importados !== undefined) return `${result.leads_importados} importados, ${result.leads_existentes || 0} já existentes`;
-    if (result.modelos_criados !== undefined) return `${result.modelos_criados?.length || 0} criados, ${result.modelos_atualizados?.length || 0} atualizados`;
+    if (result.importados !== undefined) return `${result.importados} importados, ${result.ja_existem || 0} já existentes`;
+    if (result.criados !== undefined) return `${result.criados?.length || 0} criados, ${result.atualizados?.length || 0} atualizados`;
     const list = getListData();
     if (list) return `${list.length} registros encontrados`;
     return "Concluído";
@@ -194,13 +193,13 @@ function SyncCard({ item, onSync }) {
 
         {expanded && listData && <ResultTable data={listData} />}
 
-        {expanded && result?.modelos_criados?.length > 0 && (
+        {expanded && result?.criados?.length > 0 && (
           <div className="text-xs bg-muted/40 rounded-lg p-3">
             <p className="font-medium mb-1">Criados:</p>
-            {result.modelos_criados.slice(0, 5).map((m, i) => (
+            {result.criados.slice(0, 5).map((m, i) => (
               <p key={i} className="text-muted-foreground">• {m.nome} (IXC #{m.id_ixc})</p>
             ))}
-            {result.modelos_criados.length > 5 && <p className="text-muted-foreground">+{result.modelos_criados.length - 5} mais...</p>}
+            {result.criados.length > 5 && <p className="text-muted-foreground">+{result.criados.length - 5} mais...</p>}
           </div>
         )}
 
@@ -230,20 +229,19 @@ export default function SincronizacaoIXC() {
     setSyncingAll(true);
     setAllResults(null);
     try {
-      // Sincroniza em paralelo os tipos de consulta (sem importação)
       const [filiais, vendedores, assuntos, setores, produtos] = await Promise.all([
-        base44.functions.invoke("sincronizarIXC", { tipo: "filiais" }),
-        base44.functions.invoke("sincronizarIXC", { tipo: "vendedores" }),
-        base44.functions.invoke("sincronizarIXC", { tipo: "assuntos" }),
-        base44.functions.invoke("sincronizarIXC", { tipo: "setores" }),
-        base44.functions.invoke("sincronizarIXC", { tipo: "planos" }),
+        base44.functions.invoke("ixcSync", { acao: "filiais" }),
+        base44.functions.invoke("ixcSync", { acao: "vendedores" }),
+        base44.functions.invoke("ixcSync", { acao: "assuntos_os" }),
+        base44.functions.invoke("ixcSync", { acao: "setores_os" }),
+        base44.functions.invoke("ixcSync", { acao: "produtos" }),
       ]);
       setAllResults({
         filiais: filiais.data?.filiais?.length || 0,
         vendedores: vendedores.data?.vendedores?.length || 0,
         assuntos: assuntos.data?.assuntos_os?.length || 0,
         setores: setores.data?.setores_os?.length || 0,
-        produtos: produtos.data?.planos_ixc?.length || 0,
+        produtos: produtos.data?.produtos?.length || 0,
       });
     } catch (e) {
       setAllResults({ erro: e.message });
