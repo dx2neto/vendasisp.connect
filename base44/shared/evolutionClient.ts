@@ -1,5 +1,5 @@
 // base44/shared/evolutionClient.ts
-// Helper compartilhado para envio de WhatsApp via Evolution Go API.
+// Helper compartilhado para envio de WhatsApp via Evolution API.
 //
 // SECRETS:
 //   EVOLUTION_URL            -> URL base da API (ex: https://evolution.example.com)
@@ -35,8 +35,8 @@ export async function enviarWhatsApp(
   }
 
   if (!EVOLUTION_URL || (!EVOLUTION_INSTANCE_TOKEN && !EVOLUTION_API_KEY) || !instanceName) {
-    console.warn('Evolution Go não configurado — WhatsApp não enviado');
-    return { ok: false, error: 'Evolution Go não configurado' };
+    console.warn('Evolution API não configurada — WhatsApp não enviado');
+    return { ok: false, error: 'Evolution API não configurada' };
   }
 
   try {

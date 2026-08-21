@@ -31,8 +31,8 @@ async function enviarWhatsApp(base44: any, phone: string, text: string): Promise
   }
 
   if (!EVOLUTION_URL || (!EVOLUTION_INSTANCE_TOKEN && !EVOLUTION_API_KEY) || !instanceName) {
-    console.warn("Evolution Go não configurado — WhatsApp não enviado");
-    return { ok: false, error: "Evolution Go não configurado" };
+    console.warn("Evolution API não configurada — WhatsApp não enviado");
+    return { ok: false, error: "Evolution API não configurada" };
   }
 
   try {

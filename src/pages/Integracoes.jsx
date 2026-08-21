@@ -212,7 +212,7 @@ export default function Integracoes() {
     },
     {
       id: "evolution",
-      name: "Evolution Go",
+      name: "Evolution API",
       icon: MessageCircle,
       description: "WhatsApp / Atendimento",
       status: evoStatus.status_conexao === "conectado" ? "ok" : evoStatus.status_conexao === "aguardando_qr" ? "testing" : "unknown",
@@ -274,7 +274,7 @@ export default function Integracoes() {
       <Tabs defaultValue="status" className="space-y-4">
         <TabsList className="rounded-xl">
           <TabsTrigger value="status" className="rounded-lg gap-1.5"><Activity className="w-3.5 h-3.5" />Status</TabsTrigger>
-          <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><MessageCircle className="w-3.5 h-3.5" />Evolution Go</TabsTrigger>
+          <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><MessageCircle className="w-3.5 h-3.5" />Evolution API</TabsTrigger>
           <TabsTrigger value="sync" className="rounded-lg gap-1.5"><Database className="w-3.5 h-3.5" />Sincronização IXC</TabsTrigger>
           <TabsTrigger value="logs" className="rounded-lg gap-1.5"><Clock className="w-3.5 h-3.5" />Histórico</TabsTrigger>
         </TabsList>
@@ -324,15 +324,15 @@ export default function Integracoes() {
                   <p className="text-muted-foreground">Chave de acesso nos secrets. Consultado automaticamente ao criar pedidos.</p>
                 </div>
                 <div>
-                  <p className="font-medium mb-1">💬 Evolution Go (WhatsApp)</p>
-                  <p className="text-muted-foreground">Gerencie a conexão do WhatsApp na aba <strong>Evolution Go</strong>. Crie instância, gere QR Code e conecte o número.</p>
+                  <p className="font-medium mb-1">💬 Evolution API (WhatsApp)</p>
+                  <p className="text-muted-foreground">Gerencie a conexão do WhatsApp na aba <strong>Evolution API</strong>. Crie instância, gere QR Code e conecte o número.</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Evolution Go Tab */}
+        {/* Evolution API Tab */}
         <TabsContent value="evolution" className="mt-6">
           <GerenciamentoEvolution />
         </TabsContent>
