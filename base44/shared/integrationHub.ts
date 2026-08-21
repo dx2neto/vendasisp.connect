@@ -18,8 +18,11 @@ const SECRETS_MAP: Record<string, string | string[]> = {
   omie: ["OMIE_APP_KEY", "OMIE_APP_SECRET"],
   ixcsoft: "IXC_ADMIN_TOKEN",
   "evolution-api": "EVOLUTION_API_KEY",
-  openai: "OPEN_AI_KEY",
+  openai: "OPENAI_API_KEY",
   claude: "ANTHROPIC_API_KEY",
+  groq: "GROQ_API_KEY",
+  together: "TOGETHER_API_KEY",
+  ollama: "OLLAMA_URL",
   pagcard: "PAGCARD_API_KEY",
 };
 

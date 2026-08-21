@@ -59,6 +59,7 @@ const FunilVendedor = lazy(() => import("@/pages/FunilVendedor"));
 const ChecklistInstalacao = lazy(() => import("@/pages/ChecklistInstalacao"));
 const NPSResults = lazy(() => import("@/pages/NPSResults"));
 const RegrasCredito = lazy(() => import("@/pages/RegrasCredito"));
+const AIHub = lazy(() => import("@/pages/AIHub"));
 
 const PageLoader = () => (
   <div className="fixed inset-0 flex items-center justify-center bg-background">
@@ -124,6 +125,7 @@ const AuthenticatedApp = () => {
           <Route path="/checklist-instalacao" element={<Suspense fallback={<PageLoader />}><ChecklistInstalacao /></Suspense>} />
           <Route path="/nps" element={<Suspense fallback={<PageLoader />}><NPSResults /></Suspense>} />
           <Route path="/regras-credito" element={<Suspense fallback={<PageLoader />}><RegrasCredito /></Suspense>} />
+          <Route path="/ai-hub" element={<Suspense fallback={<PageLoader />}><AIHub /></Suspense>} />
           <Route path="/indicacoes" element={<Suspense fallback={<PageLoader />}><GestaoIndicacoes /></Suspense>} />
           <Route path="/status-integracoes" element={<Suspense fallback={<PageLoader />}><StatusIntegracoes /></Suspense>} />
           <Route path="/painel-ixc" element={<Suspense fallback={<PageLoader />}><PainelIXCSoft /></Suspense>} />

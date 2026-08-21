@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, ShoppingCart, Kanban, CreditCard, FileText,
   Settings, Briefcase, DollarSign, Package, LogOut, ChevronLeft, ChevronRight,
   Zap, Plug, BarChart3, Gift, Globe, Receipt, Gauge, Landmark, UserCog, MessageSquare, TrendingUp, Database,
-  Shield, Eye, ShieldCheck, Target, Wrench, Star
+  Shield, Eye, ShieldCheck, Target, Wrench, Star, Sparkles
 } from "lucide-react";
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -43,6 +43,7 @@ const menuItems = [
   { label: "Status Integ.", icon: Plug,              path: "/status-integracoes", roles: ["admin","gerente"] },
   { label: "Painel IXCSoft",icon: Database,          path: "/painel-ixc",     roles: ["admin","gerente"] },
   { label: "Vendedores IXC",icon: UserCog,           path: "/vendedores-ixc", roles: ["admin"] },
+  { label: "Hub de IA",     icon: Sparkles,          path: "/ai-hub",        roles: ["admin"] },
   { label: "Integrações",   icon: Plug,              path: "/integracoes",   roles: ["admin"] },
   { label: "Segurança",     icon: Shield,            path: "/seguranca",     roles: ["admin"] },
   { label: "Auditoria",     icon: Eye,               path: "/auditoria",     roles: ["admin"] },
