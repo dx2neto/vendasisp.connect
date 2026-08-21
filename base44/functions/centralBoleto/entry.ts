@@ -1,11 +1,12 @@
 // base44/functions/centralBoleto/entry.ts
 // Central do Assinante — gera boleto/PIX de uma fatura específica.
-// MARCAR COMO PÚBLICA (validação por CPF/CNPJ).
+// Requer session_token válido (obtido via OTP na centralAssinante).
 //
-// Entrada: { cpf_cnpj, fatura_id, tipo: "boleto" | "pix" }
+// Entrada: { cpf_cnpj, fatura_id, tipo: "boleto" | "pix", token }
 // Saída: { url_boleto?, pix_copia_cola?, linha_digitavel? } ou { erro }
 
 import { ixcList, ixcAction, onlyDigits } from "../../shared/ixcClient.ts";
+import { validateSessionToken } from "../../shared/otpAuth.ts";
 
 const json = (obj: any, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -22,8 +23,14 @@ Deno.serve(async (req) => {
   const doc = onlyDigits(body?.cpf_cnpj || "");
   const faturaId = String(body?.fatura_id || "");
   const tipo = body?.tipo || "boleto";
+  const token = body?.token || "";
 
   if (!doc || !faturaId) return json({ erro: "CPF/CNPJ e ID da fatura são obrigatórios." }, 400);
+  if (!token) return json({ erro: "Sessão expirada. Faça login novamente." }, 401);
+
+  // Validate session token
+  const validation = await validateSessionToken(token, doc);
+  if (!validation.valid) return json({ erro: validation.reason || "Sessão inválida." }, 401);
 
   try {
     // Valida se a fatura pertence ao cliente

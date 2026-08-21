@@ -13,12 +13,12 @@ import { secrets } from "base44:runtime";
 
 // Mapa: slug → nome(s) de secret(s) necessários
 const SECRETS_MAP: Record<string, string | string[]> = {
-  zapsign: "ZAPSIGN_API_TOKEN",
+  zapsign: "ZAPSIGN_TOKEN",
   clicksign: "CLICKSIGN_ACCESS_TOKEN",
   omie: ["OMIE_APP_KEY", "OMIE_APP_SECRET"],
-  ixcsoft: "IXCSOFT_TOKEN",
-  "evolution-api": ["EVOLUTION_API_GLOBAL_KEY", "EVOLUTION_API_INSTANCE_KEY"],
-  openai: "OPENAI_API_KEY",
+  ixcsoft: "IXC_ADMIN_TOKEN",
+  "evolution-api": "EVOLUTION_API_KEY",
+  openai: "OPEN_AI_KEY",
   claude: "ANTHROPIC_API_KEY",
   pagcard: "PAGCARD_API_KEY",
 };

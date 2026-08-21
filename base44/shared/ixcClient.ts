@@ -17,8 +17,8 @@ import { secrets } from "base44:runtime";
 // ===================== CONFIGURAÇÃO =====================
 
 export function getIxcConfig() {
-  const apiUrl = (secrets.get("IXC_API_URL") || "").replace(/\/+$/, "");
-  const auth = secrets.get("IXC_ADMIN_TOKEN") || "";
+  const apiUrl = (secrets.get("IXC_API_URL") || secrets.get("IXC_HOST") || "").replace(/\/+$/, "");
+  const auth = secrets.get("IXC_ADMIN_TOKEN") || secrets.get("IXC_AUTH_BASIC") || "";
   return { apiUrl, auth };
 }
 

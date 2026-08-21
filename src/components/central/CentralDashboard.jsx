@@ -22,6 +22,7 @@ export default function CentralDashboard({ cliente, contrato, onFinanceiro, onCo
         cpf_cnpj: cliente.cliente.cpf_cnpj,
         fatura_id: faturaAberta.id,
         tipo,
+        token: cliente.session_token,
       });
       if (res.erro) { toast({ title: "Erro", description: res.erro, variant: "destructive" }); return; }
       if (tipo === "pix" && res.pix_copia_cola) {

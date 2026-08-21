@@ -21,6 +21,7 @@ export default function CentralFinanceiro({ cliente, contratoId }) {
         cpf_cnpj: cliente.cliente.cpf_cnpj || "",
         fatura_id: fatura.id,
         tipo,
+        token: cliente.session_token,
       });
       if (res.erro) { toast({ title: "Erro", description: res.erro, variant: "destructive" }); return; }
       if (tipo === "pix" && res.pix_copia_cola) {
