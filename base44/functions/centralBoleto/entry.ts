@@ -6,7 +6,8 @@
 // Saída: { url_boleto?, pix_copia_cola?, linha_digitavel? } ou { erro }
 
 import { ixcList, ixcAction, onlyDigits } from "../../shared/ixcClient.ts";
-import { validateSessionToken } from "../../shared/otpAuth.ts";
+import { validateSessionToken, auditAccess } from "../../shared/otpAuth.ts";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.31";
 
 const json = (obj: any, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -74,6 +75,10 @@ Deno.serve(async (req) => {
         }
       } catch (e) { resultado.erro_boleto = "Não foi possível gerar o boleto."; }
     }
+
+    // Audit log (LGPD) — financial document generation
+    const base44 = createClientFromRequest(req);
+    await auditAccess(base44, "export", "fn_areceber", faturaId, { tipo, cliente_id: cli.id });
 
     return json(resultado);
   } catch (e: any) {

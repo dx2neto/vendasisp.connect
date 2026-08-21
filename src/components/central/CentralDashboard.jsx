@@ -9,7 +9,7 @@ import {
   Wrench, Headphones, RefreshCw, ArrowRightLeft
 } from "lucide-react";
 
-export default function CentralDashboard({ cliente, contrato, onFinanceiro, onContratos, onOS, onSuporte, onTrocarContrato }) {
+export default function CentralDashboard({ cliente, doc, contrato, onFinanceiro, onContratos, onOS, onSuporte, onTrocarContrato }) {
   const { toast } = useToast();
   const [loadingPag, setLoadingPag] = useState(false);
   const faturaAberta = cliente?.faturas?.find((f) => f.status === "Aberta") || null;
@@ -19,7 +19,7 @@ export default function CentralDashboard({ cliente, contrato, onFinanceiro, onCo
     setLoadingPag(true);
     try {
       const res = await base44.functions.invoke("centralBoleto", {
-        cpf_cnpj: cliente.cliente.cpf_cnpj,
+        cpf_cnpj: doc,
         fatura_id: faturaAberta.id,
         tipo,
         token: cliente.session_token,

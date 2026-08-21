@@ -119,7 +119,26 @@ export async function validateSessionToken(
   return { valid: true };
 }
 
-/** Normalize Brazilian phone to 55+DDD+numero format for WhatsApp */
+// ===================== PII MASKING =====================
+
+// Mask CPF: 12345678901 -> last 2 digits visible
+// Mask CNPJ: 12345678000190 -> last 2 digits visible
+export function maskCPF(cpf: string): string {
+  const d = (cpf || "").replace(/\D/g, "");
+  if (d.length === 11) return "***.***.***-" + d.slice(-2);
+  if (d.length === 14) return "**.***.***/****-" + d.slice(-2);
+  return "***";
+}
+
+// Mask email: joao@gmail.com -> j***@gmail.com
+export function maskEmail(email: string): string {
+  if (!email || !email.includes("@")) return email || "";
+  const [name, domain] = email.split("@");
+  if (!name || !domain) return email;
+  return name[0] + "***@" + domain;
+}
+
+// Normalize Brazilian phone to 55+DDD+numero format for WhatsApp
 export function normalizePhoneBR(phone: string): string {
   let digits = (phone || "").replace(/\D/g, "");
   if (!digits) return "";
@@ -131,11 +150,65 @@ export function normalizePhoneBR(phone: string): string {
   return digits;
 }
 
-/** Mask phone for display: 5534999990000 → (34) ***-***-0000 */
+// Mask phone for display: 5534999990000 -> (34) ***-***-0000
 export function maskPhoneBR(phone: string): string {
   const digits = (phone || "").replace(/\D/g, "");
   if (digits.length < 8) return phone || "";
   const last4 = digits.slice(-4);
   const ddd = digits.length >= 10 ? digits.slice(-10, -8) : "";
-  return ddd ? `(${ddd}) ***-***-${last4}` : `***-***-${last4}`;
+  return ddd ? "(" + ddd + ") ***-***-" + last4 : "***-***-" + last4;
+}
+
+// ===================== RATE LIMITING (in-memory, per-isolate) =====================
+
+const OTP_REQUEST_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const OTP_REQUEST_MAX = 3; // max 3 OTP requests per CPF per 10 min
+const OTP_ATTEMPT_MAX = 5; // max 5 verification attempts per token
+
+const otpRequestTimes = new Map<string, number[]>();
+const otpAttemptCounts = new Map<string, number>();
+
+// Rate limit OTP requests per CPF (max 3 per 10 min)
+export function checkOtpRateLimit(cpf: string): { ok: boolean; reason?: string } {
+  const now = Date.now();
+  const key = cpf.replace(/\D/g, "");
+  const times = (otpRequestTimes.get(key) || []).filter((t) => now - t < OTP_REQUEST_WINDOW_MS);
+  if (times.length >= OTP_REQUEST_MAX) {
+    return { ok: false, reason: "Muitas solicitações de código. Aguarde alguns minutos e tente novamente." };
+  }
+  times.push(now);
+  otpRequestTimes.set(key, times);
+  return { ok: true };
+}
+
+// Rate limit OTP verification attempts per token (max 5)
+export function checkOtpAttemptLimit(token: string): { ok: boolean; reason?: string } {
+  const attempts = otpAttemptCounts.get(token) || 0;
+  if (attempts >= OTP_ATTEMPT_MAX) {
+    return { ok: false, reason: "Muitas tentativas de verificação. Solicite um novo código." };
+  }
+  otpAttemptCounts.set(token, attempts + 1);
+  return { ok: true };
+}
+
+// ===================== AUDIT LOGGING (LGPD) =====================
+
+export async function auditAccess(
+  base44: any,
+  action: string,
+  entityType: string,
+  entityId: string,
+  details: Record<string, any> = {}
+): Promise<void> {
+  if (!base44) return;
+  try {
+    await base44.asServiceRole.entities.AuditLog.create({
+      entity_type: entityType,
+      entity_id: entityId,
+      action,
+      changes: details,
+      sensitive: true,
+      reason: "central_assinante_access",
+    });
+  } catch (_) { /* audit logging should not break flow */ }
 }

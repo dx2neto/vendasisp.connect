@@ -84,6 +84,7 @@ export default function CentralAssinante() {
         {aba === "dashboard" && (
           <CentralDashboard
             cliente={dados}
+            doc={doc}
             contrato={contratoSelecionado}
             onFinanceiro={() => setAba("financeiro")}
             onContratos={handleTrocarContrato}
@@ -93,11 +94,11 @@ export default function CentralAssinante() {
           />
         )}
         {aba === "financeiro" && (
-          <CentralFinanceiro cliente={dados} contratoId={contratoSelecionado?.id} />
+          <CentralFinanceiro cliente={dados} doc={doc} contratoId={contratoSelecionado?.id} />
         )}
         {aba === "os" && <CentralOS cliente={dados} />}
         {aba === "suporte" && (
-          <CentralSuporte cliente={dados} contrato={contratoSelecionado} />
+          <CentralSuporte cliente={dados} doc={doc} contrato={contratoSelecionado} />
         )}
       </div>
 

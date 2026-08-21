@@ -1,15 +1,16 @@
 // base44/functions/centralAssinante/entry.ts
-// Central do Assinante — two-step OTP authentication.
-// Step 1: { cpf_cnpj, step: "request" } → sends OTP via WhatsApp, returns token
-// Step 2: { cpf_cnpj, step: "verify", otp, token } → validates OTP, returns full data + session_token
-// Backward compat: { cpf_cnpj, session_token } → validates session, returns data
+// Central do Assinante — two-step OTP authentication with PII masking + rate limiting.
+// Step 1: { cpf_cnpj, step: "request" } → sends OTP via WhatsApp (rate-limited)
+// Step 2: { cpf_cnpj, step: "verify", otp, token } → validates OTP, returns masked data + session_token
+// Backward compat: { cpf_cnpj, session_token } → validates session, returns masked data
 
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.31";
 import { ixcList, onlyDigits, ixcListarFaturas, ixcListarOS } from "../../shared/ixcClient.ts";
 import {
   generateOTP, createOTPToken, validateOTPToken,
   createSessionToken, validateSessionToken,
-  normalizePhoneBR, maskPhoneBR,
+  normalizePhoneBR, maskPhoneBR, maskCPF, maskEmail,
+  checkOtpRateLimit, checkOtpAttemptLimit, auditAccess,
 } from "../../shared/otpAuth.ts";
 import { enviarWhatsApp } from "../../shared/evolutionClient.ts";
 
@@ -69,13 +70,13 @@ async function fetchClientData(cli: any, doc: string, contratoId: string | null)
     faturasRaw = faturasRaw.filter((f: any) => String(f.id_contrato || f.id_cliente_contrato || "") === contratoId);
   }
 
+  // linha_digitavel removed from list — only returned on demand via centralBoleto
   const faturas = (faturasRaw || []).slice(0, 50).map((f: any) => ({
     id: f.id,
     descricao: f.descricao || "Fatura",
     vencimento: fmtData(f.data_vencimento),
     valor: fmtBRL(f.valor),
     status: f.status === "A" ? "Aberta" : f.status === "B" ? "Baixada" : f.status === "C" ? "Cancelada" : f.status || "",
-    linha_digitavel: f.linha_digitavel || f.linha_digitavel_boleto || "",
   }));
 
   let osRaw = await ixcListarOS(idCliente, { logStep: "central_listar_os" });
@@ -87,14 +88,15 @@ async function fetchClientData(cli: any, doc: string, contratoId: string | null)
     mensagem: (o.mensagem || "").slice(0, 100),
   }));
 
+  // PII masked — frontend uses doc from state for centralBoleto calls
   const cliente = {
     id: cli.id,
     nome: cli.razao || cli.fantasia || "Cliente",
     tipo_pessoa: onlyDigits(cli.cnpj_cpf).length > 11 ? "J" : "F",
-    cpf_cnpj: doc,
-    email: cli.email || "",
-    telefone: cli.fone || "",
-    whatsapp: cli.whatsapp || cli.telefone_celular || "",
+    cpf_cnpj: maskCPF(doc),
+    email: maskEmail(cli.email || ""),
+    telefone: maskPhoneBR(cli.fone || ""),
+    whatsapp: maskPhoneBR(cli.whatsapp || cli.telefone_celular || ""),
     ativo: cli.ativo === "S",
   };
 
@@ -115,8 +117,12 @@ Deno.serve(async (req) => {
   const step = body?.step || "";
   const base44 = createClientFromRequest(req);
 
-  // === STEP 1: REQUEST OTP ===
+  // === STEP 1: REQUEST OTP (rate-limited) ===
   if (step === "request") {
+    // Rate limit: max 3 OTP requests per CPF per 10 min
+    const rateLimit = checkOtpRateLimit(doc);
+    if (!rateLimit.ok) return json({ erro: rateLimit.reason }, 429);
+
     try {
       const cli = await findClient(doc);
       if (!cli) return json({ erro: "Cliente não encontrado." });
@@ -137,6 +143,9 @@ Deno.serve(async (req) => {
         return json({ erro: "Não foi possível enviar o código de verificação. Tente novamente ou entre em contato com o suporte." });
       }
 
+      // Audit log (LGPD)
+      await auditAccess(base44, "login", "cliente", cli.id, { cpf_masked: maskCPF(doc), phone_masked: maskPhoneBR(phone) });
+
       return json({
         otp_sent: true,
         phone_masked: maskPhoneBR(phone),
@@ -148,12 +157,16 @@ Deno.serve(async (req) => {
     }
   }
 
-  // === STEP 2: VERIFY OTP ===
+  // === STEP 2: VERIFY OTP (attempt-limited) ===
   if (step === "verify") {
     const otp = String(body?.otp || "").replace(/\D/g, "");
     const token = body?.token || "";
     if (!otp || otp.length !== 6) return json({ erro: "Código de verificação inválido." }, 400);
     if (!token) return json({ erro: "Token de verificação ausente." }, 400);
+
+    // Attempt limit: max 5 verification attempts per token
+    const attemptLimit = checkOtpAttemptLimit(token);
+    if (!attemptLimit.ok) return json({ erro: attemptLimit.reason }, 429);
 
     const validation = await validateOTPToken(token, doc, otp);
     if (!validation.valid) return json({ erro: validation.reason || "Verificação falhou." }, 401);
@@ -165,6 +178,9 @@ Deno.serve(async (req) => {
       const contratoId = body?.contrato_id ? String(body.contrato_id) : null;
       const data = await fetchClientData(cli, doc, contratoId);
       const sessionToken = await createSessionToken(doc);
+
+      // Audit log (LGPD) — sensitive data access
+      await auditAccess(base44, "sensitive_view", "cliente", cli.id, { cpf_masked: maskCPF(doc), contratos: data.total_contratos });
 
       return json({ ...data, session_token: sessionToken });
     } catch (e: any) {
@@ -184,6 +200,10 @@ Deno.serve(async (req) => {
 
       const contratoId = body?.contrato_id ? String(body.contrato_id) : null;
       const data = await fetchClientData(cli, doc, contratoId);
+
+      // Audit log (LGPD) — sensitive data access
+      await auditAccess(base44, "sensitive_view", "cliente", cli.id, { cpf_masked: maskCPF(doc), contratos: data.total_contratos });
+
       return json({ ...data, session_token: body.session_token });
     } catch (e: any) {
       console.error("Erro Central do Assinante:", e.message);

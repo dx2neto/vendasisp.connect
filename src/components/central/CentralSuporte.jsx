@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { base44 } from "@/api/base44Client";
 import { Headphones, Send } from "lucide-react";
 
-export default function CentralSuporte({ cliente, contrato }) {
+export default function CentralSuporte({ cliente, doc, contrato }) {
   const { toast } = useToast();
   const [assunto, setAssunto] = useState("");
   const [mensagem, setMensagem] = useState("");
@@ -20,19 +20,16 @@ export default function CentralSuporte({ cliente, contrato }) {
     }
     setLoading(true);
     try {
-      // Cria um registro de contato no CRM
-      await base44.entities.Contato.create({
+      const res = await base44.functions.invoke("centralSuporte", {
+        cpf_cnpj: doc,
         nome: cliente.cliente.nome,
         telefone: cliente.cliente.whatsapp || cliente.cliente.telefone || "",
+        assunto,
+        mensagem,
+        contrato_id: contrato?.id || "",
+        token: cliente.session_token,
       });
-      // Cria conversa de suporte
-      await base44.entities.Conversa.create({
-        contato_nome: cliente.cliente.nome,
-        contato_telefone: cliente.cliente.whatsapp || cliente.cliente.telefone || "",
-        status: "aguardando",
-        ultima_msg: `${assunto}: ${mensagem.slice(0, 80)}`,
-        ultima_em: new Date().toISOString(),
-      });
+      if (res.erro) { toast({ title: "Erro", description: res.erro, variant: "destructive" }); return; }
       toast({ title: "Solicitação enviada!", description: "Nossa equipe entrará em contato em breve." });
       setAssunto(""); setMensagem("");
     } catch (e) {

@@ -6,7 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 import { Copy, Download, FileText, RefreshCw } from "lucide-react";
 
-export default function CentralFinanceiro({ cliente, contratoId }) {
+export default function CentralFinanceiro({ cliente, doc, contratoId }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState({});
 
@@ -18,7 +18,7 @@ export default function CentralFinanceiro({ cliente, contratoId }) {
     setLoading((s) => ({ ...s, [`${fatura.id}-${tipo}`]: true }));
     try {
       const res = await base44.functions.invoke("centralBoleto", {
-        cpf_cnpj: cliente.cliente.cpf_cnpj || "",
+        cpf_cnpj: doc || "",
         fatura_id: fatura.id,
         tipo,
         token: cliente.session_token,
