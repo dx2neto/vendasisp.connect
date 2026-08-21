@@ -26,10 +26,6 @@
       "type": "string",
       "description": "Nome do gerente respons\u00e1vel"
     },
-    "telefone": {
-      "type": "string",
-      "description": "WhatsApp do usu\u00e1rio (somente d\u00edgitos com DDI: 55+DDD+n\u00famero)"
-    },
     "id_vendedor_ixc": {
       "type": "string",
       "description": "ID do vendedor no IXCSoft (v\u00ednculo para envio correto em cadastros)"
@@ -41,6 +37,10 @@
     "parceiro_codigo": {
       "type": "string",
       "description": "C\u00f3digo de parceiro \u00fanico (usado no link /assinar?v=...)"
+    },
+    "telefone": {
+      "type": "string",
+      "description": "WhatsApp do usu\u00e1rio (somente d\u00edgitos com DDI: 55+DDD+n\u00famero)"
     },
     "ativo": {
       "type": "boolean",

@@ -1,7 +1,62 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { enviarWhatsApp } from "../../shared/evolutionClient.ts";
 
-const fmt = (v) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+const fmt = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
+const RECOMPENSA_LABEL: Record<string, string> = {
+  desconto: "Desconto",
+  credito: "Crédito",
+  brinde: "Brinde",
+  mes_gratis: "Mês Grátis",
+};
+
+async function enviarWhatsApp(base44: any, phone: string, text: string): Promise<{ ok: boolean; error?: string }> {
+  const phoneDigits = (phone || "").replace(/\D/g, "");
+  if (!phoneDigits) return { ok: false, error: "Telefone vazio" };
+
+  const EVOLUTION_URL = (Deno.env.get("EVOLUTION_URL") || "").replace(/\/+$/, "");
+  const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+  const EVOLUTION_INSTANCE_TOKEN = Deno.env.get("EVOLUTION_INSTANCE_TOKEN");
+
+  let instanceName = "";
+  try {
+    const configs = await base44.asServiceRole.entities.ConfigRegras.list();
+    instanceName = configs[0]?.evo_instance || "";
+  } catch (_) { /* ignore */ }
+
+  if (!instanceName) {
+    try {
+      const statuses = await base44.asServiceRole.entities.EvolutionStatus.list();
+      instanceName = statuses[0]?.instance_name || "";
+    } catch (_) { /* ignore */ }
+  }
+
+  if (!EVOLUTION_URL || (!EVOLUTION_INSTANCE_TOKEN && !EVOLUTION_API_KEY) || !instanceName) {
+    console.warn("Evolution Go não configurado — WhatsApp não enviado");
+    return { ok: false, error: "Evolution Go não configurado" };
+  }
+
+  try {
+    const resp = await fetch(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: EVOLUTION_INSTANCE_TOKEN || EVOLUTION_API_KEY,
+      },
+      body: JSON.stringify({ number: phoneDigits, text, linkPreview: false }),
+    });
+
+    if (resp.ok) {
+      console.log(`WhatsApp enviado para ${phoneDigits}`);
+      return { ok: true };
+    }
+    const err = await resp.text().catch(() => "");
+    console.warn(`Falha ao enviar WhatsApp para ${phoneDigits}: ${err}`);
+    return { ok: false, error: err };
+  } catch (e) {
+    console.warn("Erro ao enviar WhatsApp:", (e as Error).message);
+    return { ok: false, error: (e as Error).message };
+  }
+}
 
 Deno.serve(async (req) => {
   try {
@@ -10,80 +65,84 @@ Deno.serve(async (req) => {
     const { event, data, old_data } = body;
 
     if (!event || !data) {
-      return Response.json({ success: true, message: "Sem dados do evento" });
+      return Response.json({ error: "Payload inválido — event e data são obrigatórios" }, { status: 400 });
     }
 
-    const { type, entity_name, entity_id } = event;
+    const db = base44.asServiceRole;
     let phone = "";
     let message = "";
 
-    // === Comissão criada (revendedor) ===
-    if (entity_name === "Comissao" && type === "create" && data.tipo === "revendedor") {
-      // Busca o telefone do revendedor no User
+    // ─── Comissão criada (apenas tipo revendedor) ───
+    if (event.entity_name === "Comissao" && event.type === "create") {
+      if (data.tipo !== "revendedor") {
+        return Response.json({ success: true, message: "Não é comissão de revendedor — pulando" });
+      }
+
+      // Busca telefone do revendedor no User
       if (data.vendedor_id) {
         try {
-          const user = await base44.asServiceRole.entities.User.get(data.vendedor_id);
+          const user = await db.entities.User.get(data.vendedor_id);
           phone = user?.telefone || "";
-        } catch (_) {}
+        } catch (_) { /* ignore */ }
       }
 
       message =
         `🎉 *Nova Comissão Gerada!*\n\n` +
-        `💰 Valor: *${fmt(data.valor)}*\n` +
+        `💰 Valor: ${fmt(data.valor)}\n` +
         `📊 Percentual: ${data.percentual || 0}%\n` +
         `👤 Cliente: ${data.lead_nome || "—"}\n` +
         `📦 Plano: ${data.plano_nome || "—"}\n` +
-        `📌 Status: A receber\n\n` +
-        `Acompanhe seus ganhos no painel do revendedor.`;
+        `⏳ Status: ${data.status === "pago" ? "Pago" : "A receber"}\n\n` +
+        `Acesse seu painel de revendedor para mais detalhes.`;
     }
 
-    // === Indicação aprovada (convertida) ===
-    else if (entity_name === "Indicacao" && type === "update" &&
-             old_data?.status !== "convertido" && data.status === "convertido") {
-      phone = data.indicador_telefone || "";
+    // ─── Indicação aprovada (status mudou para convertido) ───
+    if (event.entity_name === "Indicacao" && event.type === "update") {
+      const oldStatus = old_data?.status;
+      const newStatus = data.status;
 
-      const recompensa = data.recompensa_tipo === "mes_gratis" ? "Mês grátis" :
-                         data.recompensa_tipo === "desconto" ? `Desconto ${data.recompensa_valor || ""}` :
-                         data.recompensa_tipo === "credito" ? `Crédito ${data.recompensa_valor || ""}` :
-                         data.recompensa_tipo === "brinde" ? `Brinde: ${data.recompensa_valor || ""}` :
-                         data.recompensa_tipo || "—";
+      // Só notifica na transição para "convertido"
+      if (oldStatus === "convertido" || newStatus !== "convertido") {
+        return Response.json({ success: true, message: "Status não relevante para notificação" });
+      }
+
+      phone = data.indicador_telefone || "";
 
       message =
         `✅ *Indicação Aprovada!*\n\n` +
         `👤 Indicado: ${data.indicado_nome || "—"}\n` +
-        `🎁 Recompensa: ${recompensa}\n` +
-        `🔢 Código: #${data.codigo_indicacao || "—"}\n\n` +
-        `Sua indicação foi convertida com sucesso! ` +
-        `A recompensa será processada em breve.`;
+        `📞 Telefone: ${data.indicado_telefone || "—"}\n`;
+
+      if (data.recompensa_tipo) {
+        message += `🎁 Recompensa: ${RECOMPENSA_LABEL[data.recompensa_tipo] || data.recompensa_tipo}`;
+        if (data.recompensa_valor) message += ` (${data.recompensa_valor})`;
+        message += "\n";
+      }
+
+      message += `\nParabéns! Sua indicação foi convertida com sucesso. 🎊`;
     }
 
-    if (!phone || !message) {
-      return Response.json({ success: true, message: "Sem telefone ou mensagem — notificação ignorada", entity_name, type });
+    // Evento não relevante
+    if (!phone) {
+      return Response.json({ success: true, message: "Sem telefone para notificar" });
     }
 
-    const result = await enviarWhatsApp(base44, phone, message, true);
+    if (!message) {
+      return Response.json({ success: true, message: "Evento não relevante para notificação" });
+    }
 
-    // Registra log da notificação
-    try {
-      await base44.asServiceRole.entities.IntegrationLog.create({
-        pedido_id: data.pedido_id || "",
-        service: "evolution",
-        step: `notificar_revendedor.${entity_name}.${type}`,
-        request: { phone, entity_name, entity_id },
-        response: result,
-        ok: result.ok,
-      });
-    } catch (_) {}
+    const result = await enviarWhatsApp(base44, phone, message);
 
     return Response.json({
-      success: result.ok,
+      success: true,
+      event: event.type,
+      entity: event.entity_name,
       phone,
-      entity_name,
-      type,
+      sent: result.ok,
       error: result.error || null,
     });
   } catch (error) {
-    console.error("Erro em notificarRevendedor:", error);
+    console.error("Erro ao notificar revendedor:", error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
