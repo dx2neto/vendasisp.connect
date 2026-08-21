@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, FileText, Loader2 } from "lucide-react";
 import PedidoAcoes from "@/components/pedidos/PedidoAcoes";
 import HistoricoEndereco from "@/components/pedidos/HistoricoEndereco";
+import ChecklistViabilidade from "@/components/pedidos/ChecklistViabilidade";
 
 const STATUS_LABELS = {
   novo: "Novo", analise_credito: "Crédito", viabilidade: "Viabilidade",
@@ -239,8 +240,9 @@ export default function Pedidos() {
           </SheetHeader>
           {selectedPedido && (
             <Tabs defaultValue="resumo" className="mt-6">
-              <TabsList className="grid w-full grid-cols-2 rounded-xl">
+              <TabsList className="grid w-full grid-cols-3 rounded-xl">
                 <TabsTrigger value="resumo" className="rounded-lg">Resumo</TabsTrigger>
+                <TabsTrigger value="viabilidade" className="rounded-lg">Viabilidade</TabsTrigger>
                 <TabsTrigger value="relatorio" className="rounded-lg">Relatório</TabsTrigger>
               </TabsList>
 
@@ -284,6 +286,14 @@ export default function Pedidos() {
                     lead={selectedLead}
                   />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="viabilidade" className="space-y-4 mt-4">
+                <div>
+                  <p className="text-sm font-semibold mb-1">Checklist Técnico de Viabilidade</p>
+                  <p className="text-xs text-muted-foreground mb-4">Verifique os requisitos de rede antes de avançar para a assinatura.</p>
+                </div>
+                <ChecklistViabilidade pedido={selectedPedido} />
               </TabsContent>
 
               <TabsContent value="relatorio" className="space-y-5 mt-4">
