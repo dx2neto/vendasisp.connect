@@ -67,6 +67,11 @@ export default function PainelRevendedor() {
     queryFn: () => base44.entities.Indicacao.list("-created_date", 200),
   });
 
+  const { data: configRegras } = useQuery({
+    queryKey: ["config-regras"],
+    queryFn: () => base44.entities.ConfigRegras.list().then(r => r[0] || {}),
+  });
+
   // Assinaturas em tempo real
   useEffect(() => {
     if (!user?.id) return;
@@ -249,11 +254,12 @@ export default function PainelRevendedor() {
         {/* Hierarquia */}
          <TabsContent value="hierarquia" className="mt-4">
            <HierarquiaComissoes
-             pedidos={meusPedidos}
-             comissoes={minhasComissoes}
-             revendedorNome={user?.full_name}
-             receitaGerada={receitaGerada}
-           />
+              pedidos={meusPedidos}
+              comissoes={minhasComissoes}
+              revendedorNome={user?.full_name}
+              receitaGerada={receitaGerada}
+              configRegras={configRegras || {}}
+            />
          </TabsContent>
 
          {/* Clientes Indicados */}
