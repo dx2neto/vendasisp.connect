@@ -4,7 +4,7 @@
   "properties": {
     "pedido_id": {
       "type": "string",
-      "description": "ID do Pedido (venda) relacionado"
+      "description": "ID do Pedido (venda) relacionado (legado \u2014 vazio em logs gen\u00e9ricos)"
     },
     "service": {
       "type": "string",
@@ -12,30 +12,68 @@
         "credito",
         "ixc",
         "zapsign",
-        "evolution"
+        "evolution",
+        "clicksign",
+        "omie",
+        "ixcsoft",
+        "evolution-api",
+        "openai",
+        "claude",
+        "pagcard"
       ],
-      "description": "Servi\u00e7o de integra\u00e7\u00e3o"
+      "description": "Servi\u00e7o/integra\u00e7\u00e3o"
     },
     "step": {
       "type": "string",
-      "description": "Etapa executada (ex.: criar_cliente, enviar_contrato)"
+      "description": "Etapa executada (legado \u2014 alias de action)"
+    },
+    "integration_slug": {
+      "type": "string",
+      "description": "Slug da integra\u00e7\u00e3o no cat\u00e1logo Integration"
+    },
+    "action": {
+      "type": "string",
+      "description": "Nome da a\u00e7\u00e3o/endpoint chamado (ex: zapsign.createDocumentUpload)"
+    },
+    "method": {
+      "type": "string",
+      "description": "M\u00e9todo HTTP (GET, POST, PUT, DELETE, PATCH)"
     },
     "request": {
       "type": "object",
-      "description": "Dados enviados na requisi\u00e7\u00e3o"
+      "description": "Dados enviados na requisi\u00e7\u00e3o (legado)"
+    },
+    "request_payload": {
+      "type": "object",
+      "description": "Payload enviado na requisi\u00e7\u00e3o"
     },
     "response": {
       "type": "object",
-      "description": "Resposta recebida do servi\u00e7o"
+      "description": "Resposta recebida do servi\u00e7o (legado)"
+    },
+    "response_payload": {
+      "type": "object",
+      "description": "Corpo da resposta recebida"
+    },
+    "response_status": {
+      "type": "integer",
+      "description": "Status HTTP da resposta"
     },
     "ok": {
       "type": "boolean",
       "default": false,
       "description": "Se a etapa foi bem-sucedida"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Mensagem de erro (se houver)"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "description": "Dura\u00e7\u00e3o da chamada em milissegundos"
     }
   },
   "required": [
-    "pedido_id",
     "service",
     "step"
   ],
@@ -45,11 +83,7 @@
         "role": "admin"
       }
     },
-    "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
+    "create": {},
     "update": {
       "user_condition": {
         "role": "admin"
