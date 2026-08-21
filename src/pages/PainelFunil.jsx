@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+// PainelFunil — dashboard de funil de vendas em tempo real
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
