@@ -12,13 +12,13 @@ Deno.serve(async (req) => {
 
     const { acao, instanceName, instanceToken, proxy, phone, webhookUrl, subscribe } = await req.json();
 
-    const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/$/, '');
+    const EVOLUTION_URL = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/$/, '');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
     const EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID');
     const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
 
     if (!EVOLUTION_URL || !EVOLUTION_API_KEY) {
-      return Response.json({ error: 'EVOLUTION_URL e EVOLUTION_API_KEY não configurados' }, { status: 400 });
+      return Response.json({ error: 'EVOLUTION_API_URL e EVOLUTION_API_KEY não configurados' }, { status: 400 });
     }
 
     const db = base44.asServiceRole;

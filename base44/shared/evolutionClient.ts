@@ -17,7 +17,7 @@ export async function enviarWhatsApp(
   const phoneDigits = (phone || '').replace(/\D/g, '');
   if (!phoneDigits) return { ok: false, error: 'Telefone vazio' };
 
-  const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/+$/, '');
+  const EVOLUTION_URL = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
   const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
   const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
 

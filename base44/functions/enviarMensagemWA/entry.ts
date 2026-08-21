@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     if (!conversa) return Response.json({ error: 'Conversa não encontrada' }, { status: 404 });
 
     const telefone = conversa.contato_telefone;
-    const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/+$/, '');
+    const EVOLUTION_URL = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
     const EVOLUTION_INSTANCE_TOKEN = Deno.env.get('EVOLUTION_INSTANCE_TOKEN');
     let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';

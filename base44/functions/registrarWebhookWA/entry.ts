@@ -9,10 +9,10 @@ Deno.serve(async (req) => {
     const { webhook_url } = await req.json();
     if (!webhook_url) return Response.json({ error: 'webhook_url obrigatório' }, { status: 400 });
 
-    const url = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/+$/, '');
+    const url = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
     const apiKey = Deno.env.get('EVOLUTION_INSTANCE_TOKEN') || Deno.env.get('EVOLUTION_API_KEY') || '';
     const instanceId = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
-    if (!url || !apiKey) return Response.json({ error: 'Evolution Go não configurado' }, { status: 400 });
+    if (!url || !apiKey) return Response.json({ error: 'Evolution API não configurada' }, { status: 400 });
 
     const resp = await fetch(`${url}/instance/connect`, {
       method: 'POST',

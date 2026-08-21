@@ -6,12 +6,12 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
 
-    const EVOLUTION_URL = (Deno.env.get('EVOLUTION_URL') || '').replace(/\/$/, '');
+    const EVOLUTION_URL = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/$/, '');
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
     let EVOLUTION_INSTANCE_ID = Deno.env.get('EVOLUTION_INSTANCE_ID') || '';
 
     if (!EVOLUTION_URL || !EVOLUTION_API_KEY) {
-      return Response.json({ ok: false, error: 'EVOLUTION_URL e EVOLUTION_API_KEY não configurados' });
+      return Response.json({ ok: false, error: 'EVOLUTION_API_URL e EVOLUTION_API_KEY não configurados' });
     }
 
     if (!EVOLUTION_INSTANCE_ID) {
