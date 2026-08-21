@@ -26,6 +26,10 @@
       "type": "string",
       "description": "Nome do gerente respons\u00e1vel"
     },
+    "telefone": {
+      "type": "string",
+      "description": "WhatsApp do usu\u00e1rio (somente d\u00edgitos com DDI: 55+DDD+n\u00famero)"
+    },
     "id_vendedor_ixc": {
       "type": "string",
       "description": "ID do vendedor no IXCSoft (v\u00ednculo para envio correto em cadastros)"
